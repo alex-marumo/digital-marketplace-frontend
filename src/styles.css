@@ -1,0 +1,337 @@
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #F7F7F7; /* Soft off-white background */
+  color: #2C2C2E; /* Dark charcoal text */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Container */
+.container {
+  max-width: 375px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.header {
+  background-color: #2C2C2E; /* Dark charcoal header */
+  color: #FFFFFF;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.menu-icon {
+  flex: 1;
+}
+
+.menu-link {
+  color: #FFFFFF;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.hamburger-icon {
+  font-size: 20px;
+}
+
+.header-title {
+  flex: 2;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-decoration: none; /* For Link component */
+}
+
+.auth-buttons {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.header a {
+  color: #FFFFFF;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.header a:hover {
+  color: #FF9500; /* Vibrant orange on hover */
+}
+
+.header-link {
+  margin-left: 10px; /* Space between links */
+}
+
+#user-welcome {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Footer */
+.footer {
+  background-color: #2C2C2E; /* Dark charcoal footer */
+  color: #FFFFFF;
+  padding: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.footer a {
+  color: #FFFFFF;
+  margin: 0 10px;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: #FF9500;
+}
+
+/* Buttons */
+.button {
+  background-color: #FF9500; /* Vibrant orange for primary actions */
+  color: #FFFFFF;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  text-align: center;
+  text-decoration: none; /* For Link components */
+}
+
+.button:hover {
+  background-color: #FFAA33; /* Lighter orange on hover */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.button:active {
+  background-color: #E68600; /* Darker orange when pressed */
+}
+
+/* Secondary Button */
+.button-secondary {
+  background-color: #006D77; /* Deep teal for secondary actions */
+  color: #FFFFFF;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.button-secondary:hover {
+  background-color: #008B99; /* Lighter teal on hover */
+}
+
+.button-secondary:active {
+  background-color: #00555E; /* Darker teal when pressed */
+}
+
+/* Cards */
+.card {
+  background-color: #FFFFFF;
+  border-radius: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.card img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 18px 18px 0 0;
+}
+
+.card-content {
+  padding: 15px;
+}
+
+.card-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.card-price {
+  font-size: 14px;
+  color: #FF9500;
+  margin-bottom: 5px;
+}
+
+.card-artist {
+  font-size: 14px;
+  color: #8E8E93;
+}
+
+/* Artwork Grid */
+.artwork-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+/* Category Buttons */
+.category-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns for mobile */
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.category-button {
+  background-color: #E5E5EA;
+  color: #2C2C2E;
+  padding: 10px;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-decoration: none; /* For Link components */
+  text-align: center;
+  min-height: 40px; /* Ensure consistent height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-button:hover {
+  background-color: #D1D1D6;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  background-color: #F2F2F7;
+  border: 1px solid #D1D1D6;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  color: #2C2C2E;
+}
+
+.form-group input:focus {
+  border-color: #FF9500;
+  outline: none;
+}
+
+/* Typography */
+h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #2C2C2E;
+  margin-bottom: 8px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #555555;
+  margin: 15px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #555555;
+  margin-bottom: 10px;
+}
+
+/* Subtitle (for "Explore Unique Artworks From Your Community") */
+.text-center p {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.m-bottom {
+  margin-bottom: 15px;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+    padding: 30px;
+  }
+  .artwork-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .button {
+    width: auto;
+  }
+  h1 {
+    font-size: 40px;
+  }
+  h2 {
+    font-size: 24px;
+  }
+  .category-buttons {
+    grid-template-columns: repeat(4, 1fr); /* 4 columns for tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding: 40px;
+  }
+  .artwork-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .category-buttons {
+    grid-template-columns: repeat(4, 1fr); /* 4 columns for desktop */
+  }
+}
