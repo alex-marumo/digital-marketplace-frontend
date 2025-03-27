@@ -9,25 +9,25 @@ function LandingPage() {
   const featuredArtworks = [
     {
       artwork_id: '1',
-      image_url: 'src/assets/14832017_dsc-0170-2.jpg', // Path to your first image
+      image_url: '/assets/14832017_dsc-0170-2.jpg', // Path to your first image
       title: 'The Elephant',
       artist: 'Jane Doe',
     },
     {
       artwork_id: '2',
-      image_url: 'src/assets/a70abe41b4a2173e60000c9463ac000a.jpg', // Path to your second image
+      image_url: '/assets/a70abe41b4a2173e60000c9463ac000a.jpg', // Path to your second image
       title: 'Vase',
       artist: 'John Smith',
     },
     {
       artwork_id: '3',
-      image_url: 'src/assets/images (1).jpeg', // Path to your second image
+      image_url: '/assets/images (1).jpeg', // Path to your second image
       title: 'Abstract Weave',
       artist: 'John Smith',
     },
     {
       artwork_id: '4',
-      image_url: 'src/assets/painting-savuti-in-botswana-dry-season-wildlife-n-n-akkash.jpg', // Path to your second image
+      image_url: '/assets/painting-savuti-in-botswana-dry-season-wildlife-n-n-akkash.jpg', // Path to your second image
       title: 'Savuti in Botswana',
       artist: 'John Smith',
     },
