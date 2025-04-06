@@ -1,12 +1,20 @@
-// src/components/Header.js
-import React, { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import '../styles.css';
+import React, { useContext, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Import useAuth instead
+import '../styles/styles.css';
 
 function Header() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [loginClicked, setLoginClicked] = useState(false);
+
+  const isLandingPage = location.pathname === '/';
+
+  const handleLoginClick = () => {
+    setLoginClicked(true);
+    navigate('/login-register');
+  };
 
   return (
     <header className="header">
@@ -21,10 +29,23 @@ function Header() {
           <>
             <Link to="/dashboard" className="header-link">Dashboard</Link>
             <Link to="/profile" className="header-link">Profile</Link>
-            <button onClick={() => { logout(); navigate('/'); }} className="header-link">Logout</button>
+            <button
+              onClick={() => { logout(); navigate('/'); }}
+              className="header-link"
+            >
+              Logout
+            </button>
           </>
         ) : (
-          <Link to="/login-register" className="header-link">Login/Register</Link>
+          (isLandingPage && !loginClicked) && (
+            <Link
+              to="/login-register"
+              className="header-link"
+              onClick={handleLoginClick}
+            >
+              Login/Register
+            </Link>
+          )
         )}
       </div>
     </header>
