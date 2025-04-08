@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -12,21 +12,59 @@ function LoginRegister() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerificationStep, setIsVerificationStep] = useState(false);
   const [error, setError] = useState(null);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
   const navigate = useNavigate();
+
+  // Load reCAPTCHA v3 script and get token
+  useEffect(() => {
+    if (!isLogin) {
+      const script = document.createElement('script');
+      script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.REACT_APP_RECAPTCHA_SITE_KEY}`;
+      script.async = true;
+      document.body.appendChild(script);
+
+      script.onload = () => {
+        window.grecaptcha.ready(() => {
+          window.grecaptcha
+            .execute(process.env.REACT_APP_RECAPTCHA_SITE_KEY, { action: 'register' })
+            .then((token) => {
+              console.log('v3 token:', token);
+              setRecaptchaToken(token);
+            })
+            .catch((err) => {
+              console.error('reCAPTCHA v3 error:', err);
+              setError('reCAPTCHA failed—refresh and try again');
+            });
+        });
+      };
+
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [isLogin]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    if (!recaptchaToken && !isLogin) {
+      setError('reCAPTCHA not ready—wait a sec or refresh');
+      return;
+    }
     try {
       if (isLogin) {
         await login(email, password);
         navigate('/dashboard');
       } else {
-        await register(email, name, password);
+        console.log('Registering with:', { email, name, password, recaptchaToken });
+        const response = await register(email, name, password, recaptchaToken);
+        console.log('Register response:', response);
         setIsVerificationStep(true);
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred');
+      const errorMessage = err.response?.data?.error_description || err.response?.data?.error || err.message || 'An error occurred';
+      console.error('Submit error:', err);
+      setError(errorMessage);
     }
   };
 
@@ -34,7 +72,8 @@ function LoginRegister() {
     e.preventDefault();
     setError(null);
     try {
-      await axios.post('/api/verify-email-code', { email, code: verificationCode });
+      await axios.post('http://localhost:3000/api/verify-email-code', { email, code: verificationCode });
+      await login(email, password);
       navigate('/dashboard');
     } catch (error) {
       setError(error.response?.data?.error || 'Verification failed');
@@ -87,6 +126,9 @@ function LoginRegister() {
               placeholder="Password"
             />
           </div>
+          {!isLogin && (
+            <p style={{ color: '#666' }}>reCAPTCHA v3 running in background...</p>
+          )}
           <button type="submit" className="button">{isLogin ? 'Login' : 'Register'}</button>
           <p className="text-center">
             {isLogin ? "Don't have an account?" : 'Already have an account?'}
