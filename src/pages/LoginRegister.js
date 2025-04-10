@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // Add useLocation
 import axios from 'axios';
 
 function LoginRegister() {
@@ -12,13 +12,18 @@ function LoginRegister() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerificationStep, setIsVerificationStep] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null); // New state for success messages
+  const [success, setSuccess] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const navigate = useNavigate();
+  const location = useLocation(); // Track current path
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
 
   // Load reCAPTCHA v3 script and get token
   useEffect(() => {
+      if (location.pathname === '/verify-email') {
+        setShowVerificationPrompt(true);
+        setIsLogin(true); // Ensure login mode
+      }
     if (!isLogin) {
       const script = document.createElement('script');
       script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.REACT_APP_RECAPTCHA_SITE_KEY}`;
@@ -44,7 +49,7 @@ function LoginRegister() {
         document.body.removeChild(script);
       };
     }
-  }, [isLogin]);
+  }, [location.pathname, isLogin]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +65,7 @@ function LoginRegister() {
         console.log('Logging in:', { email });
         const result = await login(email, password);
         console.log('Login done, redirecting to:', result.redirect);
-        navigate(result.redirect);
+        navigate(result.redirect, { replace: true });
       } else {
         console.log('Registering:', { email, name });
         const response = await register(email, name, password, recaptchaToken);
@@ -71,11 +76,7 @@ function LoginRegister() {
       }
     } catch (err) {
       console.error('Submit error:', err.message);
-      if (err.message === 'EMAIL_VERIFICATION_REQUIRED') {
-        setShowVerificationPrompt(true);
-      } else {
-        setError(err.message || 'Something went wrong');
-      }
+      navigate('/verify-email', { replace: true });
     }
   };
   

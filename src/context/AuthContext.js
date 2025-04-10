@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+console.log('Env vars at startup:', {
+  KEYCLOAK_URL: process.env.REACT_APP_KEYCLOAK_URL,
+  KEYCLOAK_REALM: process.env.REACT_APP_KEYCLOAK_REALM,
+  KEYCLOAK_CLIENT_ID: process.env.REACT_APP_KEYCLOAK_CLIENT_ID,
+  KEYCLOAK_CLIENT_SECRET: process.env.REACT_APP_KEYCLOAK_CLIENT_SECRET ? '****' : 'MISSING',
+  API_BASE_URL: process.env.REACT_APP_API_BASE_URL
+});
+
+console.log('Dummy test:', process.env.REACT_APP_TEST_DUMMY);
+
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -8,10 +18,16 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [user, setUser] = useState(null);
+
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
   const KEYCLOAK_URL = process.env.REACT_APP_KEYCLOAK_URL || 'http://localhost:8080';
   const KEYCLOAK_REALM = process.env.REACT_APP_KEYCLOAK_REALM || 'art-marketplace-realm';
   const KEYCLOAK_CLIENT_ID = process.env.REACT_APP_KEYCLOAK_CLIENT_ID || 'digital-marketplace-frontend';
+  const KEYCLOAK_CLIENT_SECRET = process.env.REACT_APP_KEYCLOAK_CLIENT_SECRET || '';
+
+  if (!process.env.REACT_APP_KEYCLOAK_CLIENT_SECRET) {
+    console.error('FATAL: REACT_APP_KEYCLOAK_CLIENT_SECRET missing from .env');
+  }
 
   useEffect(() => {
     const storedAccessToken = localStorage.getItem('accessToken');
@@ -74,56 +90,52 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const axiosKeycloak = axios.create({
+    baseURL: KEYCLOAK_URL
+  });
+
   const login = async (email, password) => {
     try {
-      const response = await fetch(
-        `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            grant_type: "password",
-            client_id: KEYCLOAK_CLIENT_ID,
-            username: email,
-            password,
-          }),
-        }
+      const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
+      const response = await axios.post(
+        tokenUrl,
+        new URLSearchParams({
+          grant_type: 'password',
+          client_id: KEYCLOAK_CLIENT_ID,
+          client_secret: KEYCLOAK_CLIENT_SECRET,
+          username: email,
+          password: password,
+        }),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error_description || `Login failed: ${response.status}`);
-      }
-      const data = await response.json();
-      setAccessToken(data.access_token);
-      setRefreshToken(data.refresh_token);
-      localStorage.setItem('accessToken', data.access_token);
-      localStorage.setItem('refreshToken', data.refresh_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
   
-      const userData = await fetchUserData(data.access_token);
+      setAccessToken(response.data.access_token);
+      setRefreshToken(response.data.refresh_token);
+      localStorage.setItem('accessToken', response.data.access_token);
+      localStorage.setItem('refreshToken', response.data.refresh_token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+  
+      const userData = await fetchUserData(response.data.access_token);
       setUser(userData);
-  
+      console.log("Raw user data:", userData);
       console.log("User status on login:", userData.status);
   
       if (userData.status === 'verified') {
         setAuthenticated(true);
-        return { token: data.access_token, redirect: '/dashboard' };
+        return { token: response.data.access_token, redirect: '/dashboard' };
       } else if (userData.status === 'pending_role_selection') {
         setAuthenticated(true);
-        return { token: data.access_token, redirect: '/role-selection' };
-      } else if (userData.status === 'pending_email_verification') {
-        setAuthenticated(false);
-        throw new Error('EMAIL_VERIFICATION_REQUIRED');
+        return { token: response.data.access_token, redirect: '/role-selection' };
       } else {
         setAuthenticated(false);
-        throw new Error('Account not fully verified yet—check your email');
+        return { token: response.data.access_token, redirect: '/verify-email' }; // Unverified should hit here
       }
     } catch (error) {
-      console.error("Login failed:", error.message);
-      throw error;
+      console.error('Login failed:', error.response?.data || error.message);
+      throw new Error('Login failed—check your credentials or verify your email');
     }
   };
-
+  
   const register = async (email, name, password, recaptchaToken) => {
     try {
       console.log('Registering:', { email, name, recaptchaToken });
