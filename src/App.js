@@ -5,6 +5,8 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import LandingPage from './pages/LandingPage';
 import LoginRegister from './pages/LoginRegister';
+import RoleSelection from './pages/RoleSelection';
+import UploadArtistDocs from './pages/UploadArtistDocs';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Artworks from './pages/Artworks';
@@ -31,6 +33,8 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login-register" element={<LoginRegister />} />
+              <Route path="/role-selection" element={<RoleSelection />} />
+              <Route path="/upload-artist-docs" element={<UploadArtistDocs />} />
               <Route path="/dashboard" element={<PrivateRoute component={Dashboard} />} />
               <Route path="/profile" element={<PrivateRoute component={Profile} />} />
               <Route path="/artworks" element={<PrivateRoute component={Artworks} />} />
