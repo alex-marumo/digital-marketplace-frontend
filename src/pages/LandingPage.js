@@ -2,34 +2,30 @@
 import React from 'react';
 import ArtworkCard from '../components/ArtworkCard';
 import { Link } from 'react-router-dom';
-import '../styles.css';
+import '../styles/styles.css';
 
 function LandingPage() {
   // Hardcoded dummy images using your local images
   const featuredArtworks = [
     {
       artwork_id: '1',
-      image_url: 'src/assets/14832017_dsc-0170-2.jpg', // Path to your first image
+      image_url: '/assets/artwork1.jpg', // Path to your first image
       title: 'The Elephant',
-      artist: 'Jane Doe',
     },
     {
       artwork_id: '2',
-      image_url: 'src/assets/a70abe41b4a2173e60000c9463ac000a.jpg', // Path to your second image
+      image_url: '/assets/artwork2.jpg', // Path to your second image
       title: 'Vase',
-      artist: 'John Smith',
     },
     {
       artwork_id: '3',
-      image_url: 'src/assets/images (1).jpeg', // Path to your second image
+      image_url: '/assets/artwork3.jpeg', // Path to your second image
       title: 'Abstract Weave',
-      artist: 'John Smith',
     },
     {
       artwork_id: '4',
-      image_url: 'src/assets/painting-savuti-in-botswana-dry-season-wildlife-n-n-akkash.jpg', // Path to your second image
+      image_url: '/assets/artwork4.jpg', // Path to your second image
       title: 'Savuti in Botswana',
-      artist: 'John Smith',
     },
   ];
 
@@ -58,9 +54,9 @@ function LandingPage() {
       <h2>Featured Artworks</h2>
       <div className="artwork-list">
         {featuredArtworks.map(artwork => (
-          <ArtworkCard key={artwork.artwork_id} artwork={artwork} />
+          <ArtworkCard key={artwork.artwork_id} artwork={artwork} showDetails={false} />
         ))}
-      </div>
+        </div>
 
       {/* Explore by Category Section */}
       <h2>Explore by Category</h2>
