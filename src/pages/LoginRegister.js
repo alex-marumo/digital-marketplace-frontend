@@ -12,8 +12,10 @@ function LoginRegister() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerificationStep, setIsVerificationStep] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null); // New state for success messages
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const navigate = useNavigate();
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
 
   // Load reCAPTCHA v3 script and get token
   useEffect(() => {
@@ -47,45 +49,83 @@ function LoginRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
+    setShowVerificationPrompt(false);
     if (!recaptchaToken && !isLogin) {
       setError('reCAPTCHA not ready—wait a sec or refresh');
       return;
     }
     try {
       if (isLogin) {
-        await login(email, password);
-        navigate('/dashboard');
+        console.log('Logging in:', { email });
+        const result = await login(email, password);
+        console.log('Login done, redirecting to:', result.redirect);
+        navigate(result.redirect);
       } else {
-        console.log('Registering with:', { email, name, password, recaptchaToken });
+        console.log('Registering:', { email, name });
         const response = await register(email, name, password, recaptchaToken);
-        console.log('Register response:', response);
-        setIsVerificationStep(true);
+        if (response.nextStep === 'verify-email') {
+          setIsVerificationStep(true);
+          setSuccess('Registered! Check your email for a code.');
+        }
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.error_description || err.response?.data?.error || err.message || 'An error occurred';
-      console.error('Submit error:', err);
-      setError(errorMessage);
+      console.error('Submit error:', err.message);
+      if (err.message === 'EMAIL_VERIFICATION_REQUIRED') {
+        setShowVerificationPrompt(true);
+      } else {
+        setError(err.message || 'Something went wrong');
+      }
     }
   };
-
+  
+  // Reuse handleVerify and handleResendCode from previous fix
   const handleVerify = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     try {
-      await axios.post('http://localhost:3000/api/verify-email-code', { email, code: verificationCode });
-      await login(email, password);
-      navigate('/dashboard');
+      console.log('Verifying:', { email, code: verificationCode });
+      const response = await axios.post('http://localhost:3000/api/verify-email-code', { 
+        email, 
+        code: verificationCode.trim()
+      });
+      setSuccess('Email verified! Logging you in...');
+      
+      const token = await login(email, password);
+      console.log('Login token after verify:', token ? '****' : 'MISSING');
+      
+      // Show success for a sec, then redirect
+      setTimeout(() => {
+        navigate('/role-selection', { replace: true });
+      }, 1000);
     } catch (error) {
-      setError(error.response?.data?.error || 'Verification failed');
+      const errorMessage = error.response?.data?.error || error.message;
+      console.error('Verify error:', errorMessage);
+      setError(errorMessage || 'Verification failed—check the code or try again.');
     }
   };
-
+  
+  const handleResendCode = async () => {
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await axios.post('http://localhost:3000/api/resend-verification-code', { email });
+      setSuccess('New code sent—check your email!');
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(errorMessage || 'Failed to resend code—try again.');
+    }
+  };
+  
+  // Updated UI
   return (
     <div className="container">
-      {isVerificationStep ? (
+      {isVerificationStep || showVerificationPrompt ? (
         <form onSubmit={handleVerify}>
           <h1>Verify Your Email</h1>
           {error && <p className="text-center" style={{ color: 'red' }}>{error}</p>}
+          {success && <p className="text-center" style={{ color: 'green' }}>{success}</p>}
           <div className="form-group">
             <input
               type="text"
@@ -95,11 +135,25 @@ function LoginRegister() {
             />
           </div>
           <button type="submit" className="button">Verify</button>
+          <p className="text-center">
+            Didn’t get the code?{' '}
+            <button type="button" onClick={handleResendCode} className="link-button">
+              Resend Code
+            </button>
+          </p>
+          {showVerificationPrompt && (
+            <p className="text-center">
+              <button type="button" onClick={() => setShowVerificationPrompt(false)} className="link-button">
+                Back to Login
+              </button>
+            </p>
+          )}
         </form>
       ) : (
         <form onSubmit={handleSubmit}>
           <h1>{isLogin ? 'Login' : 'Register'}</h1>
           {error && <p className="text-center" style={{ color: 'red' }}>{error}</p>}
+          {success && <p className="text-center" style={{ color: 'green' }}>{success}</p>}
           {!isLogin && (
             <div className="form-group">
               <input
@@ -132,14 +186,14 @@ function LoginRegister() {
           <button type="submit" className="button">{isLogin ? 'Login' : 'Register'}</button>
           <p className="text-center">
             {isLogin ? "Don't have an account?" : 'Already have an account?'}
-            <button type="button" onClick={() => setIsLogin(!isLogin)}>
+            <button type="button" onClick={() => setIsLogin(!isLogin)} className="link-button">
               {isLogin ? 'Register' : 'Login'}
             </button>
           </p>
         </form>
       )}
     </div>
-  );
-}
+    );
+  }
 
-export default LoginRegister;
+  export default LoginRegister;

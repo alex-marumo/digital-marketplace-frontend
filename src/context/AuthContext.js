@@ -24,7 +24,10 @@ export function AuthProvider({ children }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedAccessToken}`;
 
       fetchUserData(storedAccessToken)
-        .then((userData) => setUser(userData))
+        .then((userData) => {
+          setUser(userData);
+          if (userData.status !== 'verified') setAuthenticated(false); // Not fully authenticated until verified
+        })
         .catch((error) => {
           console.error("useEffect fetch failed:", error.message);
           logout();
@@ -63,8 +66,8 @@ export function AuthProvider({ children }) {
         throw new Error(`Fetch failed: ${response.status} - ${errorText}`);
       }
       const data = await response.json();
-      console.log("User data:", data);
-      return data;
+      console.log("User data from /api/users/me:", data);
+      return { ...data, status: data.status || (data.is_verified ? 'verified' : 'pending_email_verification') };
     } catch (error) {
       console.error("Failed to fetch user data:", error.message);
       throw error;
@@ -93,16 +96,30 @@ export function AuthProvider({ children }) {
       const data = await response.json();
       setAccessToken(data.access_token);
       setRefreshToken(data.refresh_token);
-      setAuthenticated(true);
       localStorage.setItem('accessToken', data.access_token);
       localStorage.setItem('refreshToken', data.refresh_token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${data.access_token}`;
+  
       const userData = await fetchUserData(data.access_token);
       setUser(userData);
-      console.log("Token:", data.access_token);
-      return data.access_token;
+  
+      console.log("User status on login:", userData.status);
+  
+      if (userData.status === 'verified') {
+        setAuthenticated(true);
+        return { token: data.access_token, redirect: '/dashboard' };
+      } else if (userData.status === 'pending_role_selection') {
+        setAuthenticated(true);
+        return { token: data.access_token, redirect: '/role-selection' };
+      } else if (userData.status === 'pending_email_verification') {
+        setAuthenticated(false);
+        throw new Error('EMAIL_VERIFICATION_REQUIRED');
+      } else {
+        setAuthenticated(false);
+        throw new Error('Account not fully verified yet—check your email');
+      }
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login failed:", error.message);
       throw error;
     }
   };
@@ -119,7 +136,8 @@ export function AuthProvider({ children }) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Registration failed");
       }
-      return await response.json();
+      const data = await response.json();
+      return { message: data.message, nextStep: 'verify-email' }; // Signal next step
     } catch (error) {
       console.error("Registration failed:", error.message);
       throw error;
