@@ -33,6 +33,7 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login-register" element={<LoginRegister />} />
+              <Route path="/verify-email" element={<LoginRegister />} />
               <Route path="/role-selection" element={<RoleSelection />} />
               <Route path="/upload-artist-docs" element={<UploadArtistDocs />} />
               <Route path="/dashboard" element={<PrivateRoute component={Dashboard} />} />
