@@ -66,6 +66,29 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const parseJwt = (token) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error('Error decoding JWT:', e);
+      return {};
+    }
+  };
+
+  // Removed duplicate fetchUserData function
+
+  const axiosKeycloak = axios.create({
+    baseURL: KEYCLOAK_URL
+  });
+
   const login = async (email, password) => {
     try {
       const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;

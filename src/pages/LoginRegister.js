@@ -124,7 +124,6 @@ function LoginRegister() {
       setError(errorMessage || 'Verification failed—check the code or try again.');
     }
   };
-
   const handleResendCode = async () => {
     setError(null);
     setSuccess(null);
