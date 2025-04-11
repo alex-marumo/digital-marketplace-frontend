@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom'; // Add useLocation
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 function LoginRegister() {
@@ -15,15 +15,10 @@ function LoginRegister() {
   const [success, setSuccess] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const navigate = useNavigate();
-  const location = useLocation(); // Track current path
-  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+  const location = useLocation();
 
-  // Load reCAPTCHA v3 script and get token
+  // Load reCAPTCHA for registration
   useEffect(() => {
-      if (location.pathname === '/verify-email') {
-        setShowVerificationPrompt(true);
-        setIsLogin(true); // Ensure login mode
-      }
     if (!isLogin) {
       const script = document.createElement('script');
       script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.REACT_APP_RECAPTCHA_SITE_KEY}`;
@@ -49,23 +44,48 @@ function LoginRegister() {
         document.body.removeChild(script);
       };
     }
-  }, [location.pathname, isLogin]);
+  }, [isLogin]);
+
+  // Check user state after login
+  const checkUserState = async (token) => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const user = response.data;
+      console.log('User state after login:', user);
+
+      if (!user.is_verified) {
+        navigate('/verify-email', { replace: true });
+      } else if (user.status === 'pending_role_selection') {
+        navigate('/role-selection', { replace: true });
+      } else if (user.role === 'artist' && user.status === 'pending_verification') {
+        navigate('/upload-artist-docs', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (err) {
+      console.error('User state check failed:', err);
+      setError('Something went wrong—try logging in again');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    setShowVerificationPrompt(false);
-    if (!recaptchaToken && !isLogin) {
+
+    if (!isLogin && !recaptchaToken) {
       setError('reCAPTCHA not ready—wait a sec or refresh');
       return;
     }
+
     try {
       if (isLogin) {
         console.log('Logging in:', { email });
         const result = await login(email, password);
-        console.log('Login done, redirecting to:', result.redirect);
-        navigate(result.redirect, { replace: true });
+        console.log('Login result:', result);
+        await checkUserState(result.token); // Use token from login
       } else {
         console.log('Registering:', { email, name });
         const response = await register(email, name, password, recaptchaToken);
@@ -76,29 +96,27 @@ function LoginRegister() {
       }
     } catch (err) {
       console.error('Submit error:', err.message);
-      navigate('/verify-email', { replace: true });
+      setError(err.message || 'Login/Register failed—check your details');
     }
   };
-  
-  // Reuse handleVerify and handleResendCode from previous fix
+
   const handleVerify = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     try {
       console.log('Verifying:', { email, code: verificationCode });
-      const response = await axios.post('http://localhost:3000/api/verify-email-code', { 
-        email, 
-        code: verificationCode.trim()
+      const response = await axios.post('http://localhost:3000/api/verify-email-code', {
+        email,
+        code: verificationCode.trim(),
       });
       setSuccess('Email verified! Logging you in...');
-      
-      const token = await login(email, password);
-      console.log('Login token after verify:', token ? '****' : 'MISSING');
-      
-      // Show success for a sec, then redirect
+
+      const result = await login(email, password);
+      console.log('Login token after verify:', result.token ? '****' : 'MISSING');
+
       setTimeout(() => {
-        navigate('/role-selection', { replace: true });
+        checkUserState(result.token);
       }, 1000);
     } catch (error) {
       const errorMessage = error.response?.data?.error || error.message;
@@ -106,7 +124,7 @@ function LoginRegister() {
       setError(errorMessage || 'Verification failed—check the code or try again.');
     }
   };
-  
+
   const handleResendCode = async () => {
     setError(null);
     setSuccess(null);
@@ -118,11 +136,10 @@ function LoginRegister() {
       setError(errorMessage || 'Failed to resend code—try again.');
     }
   };
-  
-  // Updated UI
+
   return (
     <div className="container">
-      {isVerificationStep || showVerificationPrompt ? (
+      {isVerificationStep || location.pathname === '/verify-email' ? (
         <form onSubmit={handleVerify}>
           <h1>Verify Your Email</h1>
           {error && <p className="text-center" style={{ color: 'red' }}>{error}</p>}
@@ -142,13 +159,11 @@ function LoginRegister() {
               Resend Code
             </button>
           </p>
-          {showVerificationPrompt && (
-            <p className="text-center">
-              <button type="button" onClick={() => setShowVerificationPrompt(false)} className="link-button">
-                Back to Login
-              </button>
-            </p>
-          )}
+          <p className="text-center">
+            <button type="button" onClick={() => navigate('/login')} className="link-button">
+              Back to Login
+            </button>
+          </p>
         </form>
       ) : (
         <form onSubmit={handleSubmit}>
@@ -194,7 +209,7 @@ function LoginRegister() {
         </form>
       )}
     </div>
-    );
-  }
+  );
+}
 
-  export default LoginRegister;
+export default LoginRegister;
