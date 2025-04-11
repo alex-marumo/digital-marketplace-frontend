@@ -9,8 +9,6 @@ console.log('Env vars at startup:', {
   API_BASE_URL: process.env.REACT_APP_API_BASE_URL
 });
 
-console.log('Dummy test:', process.env.REACT_APP_TEST_DUMMY);
-
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -29,6 +27,23 @@ export function AuthProvider({ children }) {
     console.error('FATAL: REACT_APP_KEYCLOAK_CLIENT_SECRET missing from .env');
   }
 
+  const fetchUserData = async (token) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = response.data;
+      console.log('User data from /api/users/me:', data);
+      return data; // Let backend handle status sync
+    } catch (error) {
+      console.error('Failed to fetch user data:', error.message);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const storedAccessToken = localStorage.getItem('accessToken');
     const storedRefreshToken = localStorage.getItem('refreshToken');
@@ -36,63 +51,20 @@ export function AuthProvider({ children }) {
     if (storedAccessToken && storedRefreshToken) {
       setAccessToken(storedAccessToken);
       setRefreshToken(storedRefreshToken);
-      setAuthenticated(true);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedAccessToken}`;
 
       fetchUserData(storedAccessToken)
         .then((userData) => {
           setUser(userData);
-          if (userData.status !== 'verified') setAuthenticated(false); // Not fully authenticated until verified
+          setAuthenticated(userData.is_verified); // Authenticated if verified
+          console.log('Initial user state:', userData);
         })
         .catch((error) => {
-          console.error("useEffect fetch failed:", error.message);
+          console.error('Initial fetch failed:', error.message);
           logout();
         });
     }
   }, []);
-
-  const parseJwt = (token) => {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      console.error('Error decoding JWT:', e);
-      return {};
-    }
-  };
-
-  const fetchUserData = async (token) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Fetch failed: ${response.status} - ${errorText}`);
-      }
-      const data = await response.json();
-      console.log("User data from /api/users/me:", data);
-      return { ...data, status: data.status || (data.is_verified ? 'verified' : 'pending_email_verification') };
-    } catch (error) {
-      console.error("Failed to fetch user data:", error.message);
-      throw error;
-    }
-  };
-
-  const axiosKeycloak = axios.create({
-    baseURL: KEYCLOAK_URL
-  });
 
   const login = async (email, password) => {
     try {
@@ -104,54 +76,50 @@ export function AuthProvider({ children }) {
           client_id: KEYCLOAK_CLIENT_ID,
           client_secret: KEYCLOAK_CLIENT_SECRET,
           username: email,
-          password: password,
+          password,
         }),
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
-  
-      setAccessToken(response.data.access_token);
+
+      const token = response.data.access_token;
+      setAccessToken(token);
       setRefreshToken(response.data.refresh_token);
-      localStorage.setItem('accessToken', response.data.access_token);
+      localStorage.setItem('accessToken', token);
       localStorage.setItem('refreshToken', response.data.refresh_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
-  
-      const userData = await fetchUserData(response.data.access_token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      const userData = await fetchUserData(token);
       setUser(userData);
-      console.log("Raw user data:", userData);
-      console.log("User status on login:", userData.status);
-  
-      if (userData.status === 'verified') {
-        setAuthenticated(true);
-        return { token: response.data.access_token, redirect: '/dashboard' };
+      setAuthenticated(userData.is_verified); // Only authenticated if verified
+      console.log('Login user data:', userData);
+
+      if (!userData.is_verified) {
+        return { token, redirect: '/verify-email' };
       } else if (userData.status === 'pending_role_selection') {
-        setAuthenticated(true);
-        return { token: response.data.access_token, redirect: '/role-selection' };
+        return { token, redirect: '/role-selection' };
+      } else if (userData.role === 'artist' && userData.status === 'pending_verification') {
+        return { token, redirect: '/upload-artist-docs' };
       } else {
-        setAuthenticated(false);
-        return { token: response.data.access_token, redirect: '/verify-email' }; // Unverified should hit here
+        return { token, redirect: '/dashboard' };
       }
     } catch (error) {
       console.error('Login failed:', error.response?.data || error.message);
       throw new Error('Login failed—check your credentials or verify your email');
     }
   };
-  
+
   const register = async (email, name, password, recaptchaToken) => {
     try {
       console.log('Registering:', { email, name, recaptchaToken });
-      const response = await fetch(`${API_BASE_URL}/api/pre-register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, password, recaptchaToken }),
+      const response = await axios.post(`${API_BASE_URL}/api/pre-register`, {
+        email,
+        name,
+        password,
+        recaptchaToken,
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed");
-      }
-      const data = await response.json();
-      return { message: data.message, nextStep: 'verify-email' }; // Signal next step
+      return { message: response.data.message, nextStep: 'verify-email' };
     } catch (error) {
-      console.error("Registration failed:", error.message);
+      console.error('Registration failed:', error.response?.data || error.message);
       throw error;
     }
   };
