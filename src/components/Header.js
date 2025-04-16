@@ -30,7 +30,7 @@ function Header() {
       </div>
       <Link to="/" className="header-title">ARTISTIC</Link>
       <div className="auth-buttons">
-        {authenticated && user?.role === 'buyer' && (
+        {authenticated && user?.is_verified && user?.role === 'buyer' && (
           <>
             <Link to="/dashboard" className="header-link">Dashboard</Link>
             <Link to="/profile" className="header-link">Profile</Link>
@@ -39,17 +39,25 @@ function Header() {
             </button>
           </>
         )}
-        {authenticated && user?.role === 'artist' && (
+        {authenticated && user?.is_verified && user?.role === 'artist' && (
           <>
             <Link to="/dashboard" className="header-link">Dashboard</Link>
             <Link to="/profile" className="header-link">Profile</Link>
+            <button onClick={() => { logout(); navigate('/'); }} className="header-link">
+              Logout
+            </button>
+          </>
+        )}
+        {authenticated && user?.is_verified && user?.role === 'admin' && (
+          <>
+            <Link to="/admin-panel" className="header-link">Admin Panel</Link>
             <button onClick={() => { logout(); navigate('/'); }} className="header-link">
               Logout
             </button>
           </>
         )}
         {!authenticated || !user?.is_verified ? (
-          (isLandingPage && !loginClicked) && (
+          isLandingPage && !loginClicked && (
             <Link to="/login-register" className="header-link" onClick={handleLoginClick}>
               Login/Register
             </Link>
@@ -103,6 +111,21 @@ function Header() {
                 </li>
                 <li>
                   <Link to="/add-artwork" onClick={toggleMenu}>Add Artwork</Link>
+                </li>
+                <li>
+                  <button
+                    onClick={() => { logout(); navigate('/'); toggleMenu(); }}
+                    className="menu-logout"
+                  >
+                    Logout
+                  </button>
+                </li>
+              </>
+            )}
+            {authenticated && user?.is_verified && user?.role === 'admin' && (
+              <>
+                <li>
+                  <Link to="/admin-panel" onClick={toggleMenu}>Admin Panel</Link>
                 </li>
                 <li>
                   <button
