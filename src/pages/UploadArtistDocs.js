@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
+import { useAuth } from '../context/AuthContext'; // Adjusted path
 
 function UploadArtistDocs() {
   const [idDocument, setIdDocument] = useState(null);
@@ -10,6 +11,7 @@ function UploadArtistDocs() {
   const [error, setError] = useState(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   useEffect(() => {
     const loadModels = async () => {
@@ -65,7 +67,6 @@ function UploadArtistDocs() {
       setError('ID document and portfolio are required');
       return;
     }
-
     if (selfie) {
       const faceMatch = await verifyFaceMatch();
       if (!faceMatch) {
@@ -73,24 +74,41 @@ function UploadArtistDocs() {
         return;
       }
     }
-
     const formData = new FormData();
     formData.append('idDocument', idDocument);
     formData.append('proofOfWork', proofOfWork);
     if (selfie) formData.append('selfie', selfie);
-
     try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) throw new Error('No access token—please log in');
+      console.log('Uploading with token:', token.slice(0, 20) + '...');
       const response = await axios.post('http://localhost:3000/api/upload-artist-docs', formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
       console.log('Upload response:', response.data);
+
+      // Refresh user data
+      const userResponse = await axios.get('http://localhost:3000/api/users/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('Refreshed user data:', userResponse.data);
+
+      // Update AuthContext user state
+      setUser(userResponse.data);
+
       navigate('/dashboard');
     } catch (err) {
-      console.error('Upload error:', err.response?.data);
-      setError(err.response?.data?.error || 'Upload failed—try again');
+      const errorMsg = err.response?.data?.error || err.message || 'Unknown error';
+      console.error('Upload error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        stack: err.stack,
+      });
+      setError(errorMsg);
     }
   };
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -17,13 +17,37 @@ import Orders from './pages/Orders';
 import Sales from './pages/Sales';
 import RequestArtist from './pages/RequestArtist';
 import Messages from './pages/Messages';
+import AdminPanel from './pages/AdminPanel';
 
-function PrivateRoute({ component: Component }) {
-  const { authenticated } = useAuth();
-  return authenticated ? <Component /> : <Navigate to="/login-register" />;
+function PrivateRoute({ component: Component, isAdminRoute = false, ...rest }) {
+  const { authenticated, user } = useAuth();
+  const navigate = useNavigate();
+  console.log('PrivateRoute props:', { isAdminRoute, rest, authenticated, role: user?.role, status: user?.status, user });
+
+  useEffect(() => {
+    if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
+      console.log('Admin route blocked, redirecting to /dashboard:', { authenticated, role: user?.role });
+      navigate('/dashboard', { replace: true });
+    } else if (!isAdminRoute && !authenticated) {
+      console.log('Non-admin route, not authenticated, redirecting to /login-register');
+      navigate('/login-register', { replace: true });
+    } else {
+      console.log('PrivateRoute allowing render:', { path: rest.path, isAdminRoute });
+    }
+  }, [authenticated, user, isAdminRoute, navigate, rest.path]);
+
+  if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
+    return <div>Redirecting to dashboard...</div>;
+  }
+  if (!isAdminRoute && !authenticated) {
+    return <div>Redirecting to login...</div>;
+  }
+
+  return <Component />;
 }
 
 function App() {
+  console.log('App rendering, mounting routes');
   return (
     <AuthProvider>
       <Router>
@@ -36,7 +60,10 @@ function App() {
               <Route path="/verify-email" element={<LoginRegister />} />
               <Route path="/role-selection" element={<RoleSelection />} />
               <Route path="/upload-artist-docs" element={<UploadArtistDocs />} />
-              <Route path="/dashboard" element={<PrivateRoute component={Dashboard} />} />
+              <Route path="/admin" element={<PrivateRoute component={AdminPanel} isAdminRoute={true} />} />
+              <Route path="/admin-bypass" element={<AdminPanel />} />
+              <Route path="/debug-admin" element={<AdminPanel />} />
+              <Route path="/dashboard" element={<PrivateRoute component={Dashboard} isAdminRoute={false} />} />
               <Route path="/profile" element={<PrivateRoute component={Profile} />} />
               <Route path="/artworks" element={<PrivateRoute component={Artworks} />} />
               <Route path="/artwork/:id" element={<PrivateRoute component={ArtworkDetail} />} />
@@ -46,7 +73,7 @@ function App() {
               <Route path="/sales" element={<PrivateRoute component={Sales} />} />
               <Route path="/request-artist" element={<PrivateRoute component={RequestArtist} />} />
               <Route path="/messages" element={<PrivateRoute component={Messages} />} />
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
           <Footer />

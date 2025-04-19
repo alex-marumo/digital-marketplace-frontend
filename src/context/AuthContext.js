@@ -29,6 +29,7 @@ export function AuthProvider({ children }) {
 
   const fetchUserData = async (token) => {
     try {
+      console.log('Fetching user data with token:', token?.slice(0, 20) + '...');
       const response = await axios.get(`${API_BASE_URL}/api/users/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -36,33 +37,45 @@ export function AuthProvider({ children }) {
         },
       });
       const data = response.data;
-      console.log('User data from /api/users/me:', data);
-      return data; // Let backend handle status sync
+      console.log('User data from /api/users/me:', { role: data.role, is_verified: data.is_verified, status: data.status, ...data });
+      return data;
     } catch (error) {
-      console.error('Failed to fetch user data:', error.message);
+      console.error('Failed to fetch user data:', error.response?.data || error.message);
       throw error;
     }
   };
 
   useEffect(() => {
+    console.log('AuthContext useEffect running');
     const storedAccessToken = localStorage.getItem('accessToken');
     const storedRefreshToken = localStorage.getItem('refreshToken');
+    console.log('Stored tokens:', {
+      accessToken: storedAccessToken ? 'present' : 'missing',
+      refreshToken: storedRefreshToken ? 'present' : 'missing'
+    });
 
     if (storedAccessToken && storedRefreshToken) {
       setAccessToken(storedAccessToken);
       setRefreshToken(storedRefreshToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedAccessToken}`;
-
       fetchUserData(storedAccessToken)
         .then((userData) => {
           setUser(userData);
-          setAuthenticated(userData.is_verified); // Authenticated if verified
-          console.log('Initial user state:', userData);
+          setAuthenticated(userData.is_verified);
+          console.log('Initial user state:', { role: userData.role, is_verified: userData.is_verified, status: userData.status });
         })
         .catch((error) => {
-          console.error('Initial fetch failed:', error.message);
-          logout();
+          console.error('Initial fetch failed, clearing state:', error.message);
+          setUser(null);
+          setAuthenticated(false);
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          delete axios.defaults.headers.common['Authorization'];
         });
+    } else {
+      console.log('No tokens found, staying unauthenticated');
+      setAuthenticated(false);
+      setUser(null);
     }
   }, []);
 
@@ -82,8 +95,6 @@ export function AuthProvider({ children }) {
       return {};
     }
   };
-
-  // Removed duplicate fetchUserData function
 
   const axiosKeycloak = axios.create({
     baseURL: KEYCLOAK_URL
@@ -113,18 +124,10 @@ export function AuthProvider({ children }) {
 
       const userData = await fetchUserData(token);
       setUser(userData);
-      setAuthenticated(userData.is_verified); // Only authenticated if verified
-      console.log('Login user data:', userData);
-
-      if (!userData.is_verified) {
-        return { token, redirect: '/verify-email' };
-      } else if (userData.status === 'pending_role_selection') {
-        return { token, redirect: '/role-selection' };
-      } else if (userData.role === 'artist' && userData.status === 'pending_verification') {
-        return { token, redirect: '/upload-artist-docs' };
-      } else {
-        return { token, redirect: '/dashboard' };
-      }
+      setAuthenticated(userData.is_verified);
+      console.log('Login user data:', { role: userData.role, is_verified: userData.is_verified, status: userData.status });
+      console.log('Login complete, no redirect enforced:', { role: userData.role, is_verified: userData.is_verified, status: userData.status });
+      return { token };
     } catch (error) {
       console.error('Login failed:', error.response?.data || error.message);
       throw new Error('Login failed—check your credentials or verify your email');
@@ -158,7 +161,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ authenticated, user, login, register, logout }}>
+    <AuthContext.Provider value={{ authenticated, user, setUser, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
