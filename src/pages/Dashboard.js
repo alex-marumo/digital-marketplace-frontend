@@ -13,6 +13,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Dashboard mounted:', { authenticated, role: user?.role, status: user?.status });
     const fetchDashboardData = async () => {
       if (!authenticated) {
         navigate('/login-register');
@@ -28,19 +29,20 @@ function Dashboard() {
         }
 
         if (!user) {
-          await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for AuthContext to settle
+          await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for AuthContext
         }
 
-        // Only show prompt if role is missing (shouldn’t happen with index.js)
         if (!user?.role) {
           setShowRolePrompt(true);
+        } else if (user.role === 'admin') {
+          navigate('/admin', { replace: true }); // Redirect admins to /admin
         } else if (user.role === 'buyer') {
-          const response = await axios.get('/api/artworks', {
+          const response = await axios.get('http://localhost:3001/api/artworks', {
             headers: { Authorization: `Bearer ${token}` },
           });
           setArtworks(response.data);
         } else if (user.role === 'artist') {
-          const response = await axios.get('/api/artworks', {
+          const response = await axios.get('http://localhost:3001/api/artworks', {
             headers: { Authorization: `Bearer ${token}` },
           });
           const artistArtworks = response.data.filter(
@@ -69,7 +71,7 @@ function Dashboard() {
         navigate('/request-artist');
       } else if (role === 'buyer') {
         setShowRolePrompt(false);
-        const response = await axios.get('/api/artworks', {
+        const response = await axios.get('http://localhost:3001/api/artworks', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setArtworks(response.data);
