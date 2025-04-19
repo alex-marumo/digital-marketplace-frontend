@@ -22,9 +22,13 @@ import AdminPanel from './pages/AdminPanel';
 function PrivateRoute({ component: Component, isAdminRoute = false, ...rest }) {
   const { authenticated, user } = useAuth();
   const navigate = useNavigate();
-  console.log('PrivateRoute props:', { isAdminRoute, rest, authenticated, role: user?.role, status: user?.status, user });
+  console.log('PrivateRoute props:', { isAdminRoute, path: rest.path, authenticated, role: user?.role, status: user?.status, user });
 
   useEffect(() => {
+    if (user?.role === 'admin' && isAdminRoute) {
+      console.log('Admin user, admin route, allowing render:', { path: rest.path, isAdminRoute });
+      return;
+    }
     if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
       console.log('Admin route blocked, redirecting to /dashboard:', { authenticated, role: user?.role });
       navigate('/dashboard', { replace: true });
@@ -36,6 +40,10 @@ function PrivateRoute({ component: Component, isAdminRoute = false, ...rest }) {
     }
   }, [authenticated, user, isAdminRoute, navigate, rest.path]);
 
+  if (user?.role === 'admin' && isAdminRoute) {
+    console.log('Rendering admin component:', { component: Component.name });
+    return <Component />;
+  }
   if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
     return <div>Redirecting to dashboard...</div>;
   }
@@ -62,6 +70,7 @@ function App() {
               <Route path="/upload-artist-docs" element={<UploadArtistDocs />} />
               <Route path="/admin" element={<PrivateRoute component={AdminPanel} isAdminRoute={true} />} />
               <Route path="/admin-bypass" element={<AdminPanel />} />
+              <Route path="/admin-force" element={<AdminPanel />} />
               <Route path="/debug-admin" element={<AdminPanel />} />
               <Route path="/dashboard" element={<PrivateRoute component={Dashboard} isAdminRoute={false} />} />
               <Route path="/profile" element={<PrivateRoute component={Profile} />} />

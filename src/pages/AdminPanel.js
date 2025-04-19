@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,24 +10,22 @@ function AdminPanel() {
   const [selectedDocType, setSelectedDocType] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(false);
+  const [docError, setDocError] = useState(null);
+  const [docType, setDocType] = useState('image');
+  const [signedUrl, setSignedUrl] = useState(null);
 
-  console.log('AdminPanel mounted:', { authenticated, user, role: user?.role });
+  console.log('AdminPanel mounted:', { authenticated, role: user?.role, status: user?.status, user });
 
-  useEffect(() => {
-    console.log('useEffect triggered:', { authenticated, user, role: user?.role });
+  const fetchRequests = useCallback(async () => {
     if (!user || !authenticated || user?.role !== 'admin') {
+      setError('Unauthorized: Admin access required.');
       console.log('Not admin, skipping fetch:', { authenticated, role: user?.role });
       return;
     }
-    console.log('Fetching requests as admin');
-    fetchRequests();
-  }, [authenticated, user]);
-
-  const fetchRequests = async () => {
     try {
       const token = localStorage.getItem('accessToken');
       console.log('Fetching requests with token:', token?.slice(0, 20) + '...');
-      const response = await axios.get('http://localhost:3000/api/admin/artist-requests/pending', {
+      const response = await axios.get('http://localhost:3001/api/admin/artist-requests/pending', {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('Fetched requests:', response.data);
@@ -41,12 +39,41 @@ function AdminPanel() {
       setError('Failed to load requests: ' + (err.response?.data?.error || err.message));
       console.error('Fetch error:', err);
     }
-  };
+  }, [user, authenticated]);
 
-  const viewDocument = (requestId, docType) => {
+  useEffect(() => {
+    console.log('useEffect triggered:', { authenticated, role: user?.role });
+    fetchRequests();
+  }, [user, authenticated, fetchRequests]);
+
+  const viewDocument = async (requestId, docType) => {
     setSelectedRequest(requestId);
     setSelectedDocType(docType);
     setRejectionReason('');
+    setDocError(null);
+    setSignedUrl(null);
+    setLoading(true);
+    const token = localStorage.getItem('accessToken');
+    
+    try {
+      if (!token) throw new Error('No access token found');
+      
+      // Fetch signed URL
+      const signedUrlResponse = await axios.get(
+        `http://localhost:3000/api/admin/artist-requests/${requestId}/file/${docType}/signed-url`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const { signedUrl } = signedUrlResponse.data;
+      setSignedUrl(signedUrl);
+      
+      // For simplicity, assume it's an image
+      setDocType('image');
+    } catch (err) {
+      console.error('Error fetching signed URL:', err);
+      setDocError('Failed to load document. Check backend logs.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReview = async (requestId, status) => {
@@ -57,14 +84,17 @@ function AdminPanel() {
 
     setLoading(true);
     try {
+      const token = localStorage.getItem('accessToken');
       await axios.post(
-        `http://localhost:3000/api/admin/artist-requests/${requestId}/review`,
+        `http://localhost:3001/api/admin/artist-requests/${requestId}/review`,
         { status, rejection_reason: status === 'rejected' ? rejectionReason : null },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setSelectedRequest(null);
       setSelectedDocType(null);
       setRejectionReason('');
+      setDocError(null);
+      setSignedUrl(null);
       fetchRequests();
     } catch (err) {
       setError(err.response?.data?.error || 'Review failed');
@@ -74,15 +104,24 @@ function AdminPanel() {
     }
   };
 
+  const closeModal = () => {
+    setSelectedRequest(null);
+    setSelectedDocType(null);
+    setRejectionReason('');
+    setDocError(null);
+    setSignedUrl(null);
+  };
+
   console.log('Rendering AdminPanel:', { requests, error, authenticated, role: user?.role });
 
   return (
     <Suspense fallback={<div>Loading admin panel...</div>}>
-      <div className="admin-panel">
+      <div className="admin-panel" style={{ minHeight: '200px', backgroundColor: '#f0f0f0', border: '2px solid red' }}>
         <h1>Admin Artist Request Review</h1>
-        <p>Debug: User role: {user?.role || 'none'}, Authenticated: {authenticated.toString()}</p>
+        <p>Debug: User role: {user?.role || 'none'}, Authenticated: {authenticated.toString()}, Status: {user?.status || 'none'}</p>
         {error && <p style={{ color: 'red' }}>{error}</p>}
-        {requests.length === 0 && <p>No pending requests available. Check backend logs for artist_requests.</p>}
+        {loading && <p>Loading...</p>}
+        {requests.length === 0 && !error && <p>No pending requests available. Check backend logs for artist_requests.</p>}
         <table>
           <thead>
             <tr>
@@ -123,11 +162,38 @@ function AdminPanel() {
         {selectedRequest && selectedDocType && (
           <div className="review-modal">
             <h2>Review {selectedDocType.replace('_', ' ')}</h2>
-            <iframe
-              src={`http://localhost:3000/api/admin/artist-requests/${selectedRequest}/file/${selectedDocType}`}
-              title="Document Preview"
-              style={{ width: '100%', height: '500px' }}
-            />
+            {loading && <p>Loading document...</p>}
+            {docError ? (
+              <p style={{ color: 'red' }}>
+                {docError}
+              </p>
+            ) : (
+              <>
+                {signedUrl && docType === 'image' && (
+                  <img
+                  src={signedUrl}
+                  alt="Document Preview"
+                  style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }}
+                  onError={(e) => {
+                    console.error('Image load error:', e);
+                    setDocError('Unable to load image.');
+                    }}
+                    />
+                  )
+                }
+                {signedUrl && (
+                  <p>
+                    <a
+                      href={signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Download {selectedDocType.replace('_', ' ')}
+                    </a>
+                  </p>
+                )}
+              </>
+            )}
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
@@ -147,11 +213,7 @@ function AdminPanel() {
               Reject
             </button>
             <button
-              onClick={() => {
-                setSelectedRequest(null);
-                setSelectedDocType(null);
-                setRejectionReason('');
-              }}
+              onClick={closeModal}
               disabled={loading}
             >
               Close
