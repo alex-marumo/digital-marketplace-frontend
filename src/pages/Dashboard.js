@@ -14,6 +14,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Dashboard mounted:', { authenticated, role: user?.role, status: user?.status });
     const fetchDashboardData = async () => {
       if (!authenticated) return navigate('/login-register');
       try {
