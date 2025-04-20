@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ArtworkCard from '../components/ArtworkCard';
 import RolePromptModal from '../components/RolePromptModal';
+import { Sparkles, UserCircle2, Brush, ShoppingCart, Clock } from 'lucide-react';
 
 function Dashboard() {
   const { authenticated, user, logout } = useAuth();
@@ -13,77 +14,54 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Dashboard mounted:', { authenticated, role: user?.role, status: user?.status });
     const fetchDashboardData = async () => {
-      if (!authenticated) {
-        navigate('/login-register');
-        return;
-      }
-
+      if (!authenticated) return navigate('/login-register');
       try {
         const token = localStorage.getItem('accessToken');
-        if (!token) {
-          logout();
-          navigate('/login-register');
-          return;
-        }
+        if (!token) throw new Error('Missing token');
 
-        if (!user) {
-          await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for AuthContext
-        }
+        if (!user) await new Promise((res) => setTimeout(res, 100));
 
-        if (!user?.role) {
-          setShowRolePrompt(true);
-        } else if (user.role === 'admin') {
-          navigate('/admin', { replace: true }); // Redirect admins to /admin
-        } else if (user.role === 'buyer') {
-          const response = await axios.get('http://localhost:3001/api/artworks', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setArtworks(response.data);
-        } else if (user.role === 'artist') {
-          const response = await axios.get('http://localhost:3001/api/artworks', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const artistArtworks = response.data.filter(
-            (artwork) => artwork.artist_id === user.keycloak_id
-          );
+        if (!user?.role) return setShowRolePrompt(true);
+
+        if (user.role === 'admin') return navigate('/admin');
+
+        const { data } = await axios.get('http://localhost:3001/api/artworks', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (user.role === 'artist') {
+          const artistArtworks = data.filter(a => a.artist_id === user.keycloak_id);
           setArtworks(artistArtworks);
+        } else {
+          setArtworks(data);
         }
       } catch (error) {
-        console.error('Dashboard error:', error.response?.data || error.message);
-        if (error.response?.status === 401) {
-          logout();
-          navigate('/login-register');
-        }
+        logout();
+        navigate('/login-register');
       } finally {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
   }, [authenticated, user, navigate, logout]);
 
   const handleRoleSelection = async (role) => {
     try {
       const token = localStorage.getItem('accessToken');
-      if (role === 'artist') {
-        navigate('/request-artist');
-      } else if (role === 'buyer') {
-        setShowRolePrompt(false);
-        const response = await axios.get('http://localhost:3001/api/artworks', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setArtworks(response.data);
-      }
-    } catch (error) {
-      console.error('Role selection error:', error.response?.data || error.message);
+      if (role === 'artist') return navigate('/request-artist');
+
+      setShowRolePrompt(false);
+      const { data } = await axios.get('http://localhost:3001/api/artworks', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setArtworks(data);
+    } catch (err) {
+      console.error('Role selection error:', err);
     }
   };
 
-  if (loading) {
-    return <div className="container">Loading...</div>;
-  }
+  if (loading) return <div className="container text-center">Loading...</div>;
 
   return (
     <div className="container">
@@ -95,42 +73,44 @@ function Dashboard() {
         />
       )}
 
-      {user?.role === 'buyer' && !showRolePrompt && (
+      {!showRolePrompt && (
         <>
-          <h1>Browse Artworks</h1>
-          <p className="text-center">Explore unique artworks from your community</p>
-          <div className="artwork-list">
-            {artworks.length > 0 ? (
-              artworks.map((artwork) => (
-                <ArtworkCard key={artwork.artwork_id} artwork={artwork} />
-              ))
-            ) : (
-              <p>No artworks available yet.</p>
-            )}
+          <div className="card text-center m-bottom">
+            <h1 className="text-2xl font-bold mb-1">Welcome, {user?.name || 'User'} 👋</h1>
+            <p className="text-muted text-sm">{user?.role === 'artist' ? 'Create, showcase, and sell your art' : 'Browse and buy community-crafted masterpieces'}</p>
           </div>
-          <Link to="/search" className="button m-bottom">Search Artworks</Link>
-        </>
-      )}
 
-      {user?.role === 'artist' && !showRolePrompt && (
-        <>
-          <h1>Your Artworks</h1>
-          <p className="text-center">Manage your artwork collection</p>
-          <Link to="/add-artwork" className="button m-bottom">Add New Artwork</Link>
-          <div className="artwork-list">
-            {artworks.length > 0 ? (
-              artworks.map((artwork) => (
-                <ArtworkCard key={artwork.artwork_id} artwork={artwork} />
-              ))
-            ) : (
-              <p>You haven’t added any artworks yet.</p>
-            )}
-          </div>
-        </>
-      )}
+          {user?.role === 'artist' && (
+            <>
+              <div className="card m-bottom">
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><Brush size={20} /> Your Art Collection</h2>
+                <Link to="/add-artwork" className="button m-bottom">Add New Artwork</Link>
+                <div className="artwork-list">
+                  {artworks.length > 0 ? artworks.map(a => <ArtworkCard key={a.artwork_id} artwork={a} />) : <p>You haven’t added any artworks yet.</p>}
+                </div>
+              </div>
+            </>
+          )}
 
-      {(!user?.role && !showRolePrompt) && (
-        <p>Whoops, something’s off—please log out and back in.</p>
+          {user?.role === 'buyer' && (
+            <>
+              <div className="card m-bottom">
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><ShoppingCart size={20} /> Featured Artworks</h2>
+                <p className="text-sm text-muted">Hand-picked for your taste.</p>
+                <div className="artwork-list">
+                  {artworks.length > 0 ? artworks.map(a => <ArtworkCard key={a.artwork_id} artwork={a} />) : <p>No artworks available yet.</p>}
+                </div>
+              </div>
+
+              <Link to="/search" className="button m-bottom">Search More Art</Link>
+
+              <div className="card m-bottom">
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><Clock size={20} /> Recently Viewed</h2>
+                <p className="text-sm text-muted">(This can show user-specific saved/viewed art later)</p>
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );

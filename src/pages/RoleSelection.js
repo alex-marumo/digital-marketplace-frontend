@@ -11,19 +11,16 @@ function RoleSelection() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('accessToken');
-      console.log('Sending role selection with token:', token ? '****' : 'MISSING');
-      const response = await axios.post('http://localhost:3000/api/select-role', { role }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      console.log('Role selection response:', response.data);
-      if (role === 'artist') {
-        navigate('/upload-artist-docs');
-      } else {
-        navigate('/dashboard');
-      }
+      const response = await axios.post(
+        'http://localhost:3000/api/select-role',
+        { role },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      navigate(role === 'artist' ? '/upload-artist-docs' : '/dashboard');
     } catch (err) {
-      console.error('Role selection error:', err.response?.data || err.message);
-      setError(err.response?.data?.error || 'Role selection failed—try again.');
+      const msg = err.response?.data?.error || 'Role selection failed—try again.';
+      setError(msg);
     }
   };
 
@@ -32,15 +29,35 @@ function RoleSelection() {
       <h1>Pick Your Role</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleSubmit}>
-        <label>
-          <input type="radio" value="buyer" checked={role === 'buyer'} onChange={(e) => setRole(e.target.value)} />
-          Buyer
-        </label>
-        <label>
-          <input type="radio" value="artist" checked={role === 'artist'} onChange={(e) => setRole(e.target.value)} />
-          Artist
-        </label>
-        <button type="submit" disabled={!role}>Next</button>
+        <div className="form-group">
+          <label className="category-button">
+            <input
+              type="radio"
+              name="role"
+              value="buyer"
+              checked={role === 'buyer'}
+              onChange={(e) => setRole(e.target.value)}
+              style={{ marginRight: '10px' }}
+            />
+            Buyer
+          </label>
+        </div>
+        <div className="form-group">
+          <label className="category-button">
+            <input
+              type="radio"
+              name="role"
+              value="artist"
+              checked={role === 'artist'}
+              onChange={(e) => setRole(e.target.value)}
+              style={{ marginRight: '10px' }}
+            />
+            Artist
+          </label>
+        </div>
+        <button className="button" type="submit" disabled={!role}>
+          Next
+        </button>
       </form>
     </div>
   );

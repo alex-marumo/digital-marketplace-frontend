@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
-import { useAuth } from '../context/AuthContext'; // Adjusted path
+import { useAuth } from '../context/AuthContext';
 
 function UploadArtistDocs() {
   const [idDocument, setIdDocument] = useState(null);
@@ -16,46 +16,46 @@ function UploadArtistDocs() {
   useEffect(() => {
     const loadModels = async () => {
       try {
-        console.log('Loading Face-API.js models...');
         await Promise.all([
           faceapi.nets.ssdMobilenetv1.loadFromUri('/models'),
           faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
           faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
         ]);
-        console.log('Models loaded successfully');
         setModelsLoaded(true);
       } catch (err) {
-        console.error('Model loading failed:', err);
-        setError('Face recognition setup failed—proceed without it');
+        setError('Face recognition setup failed—proceeding without it');
       }
     };
     loadModels();
   }, []);
 
   const verifyFaceMatch = async () => {
-    if (!modelsLoaded) {
-      console.warn('Models not loaded—skipping face match');
-      return true;
-    }
-    if (!idDocument || !selfie) return true;
-
+    if (!modelsLoaded || !idDocument || !selfie) return true;
     try {
       const idImg = await faceapi.fetchImage(URL.createObjectURL(idDocument));
       const selfieImg = await faceapi.fetchImage(URL.createObjectURL(selfie));
-      
-      const idDetection = await faceapi.detectSingleFace(idImg).withFaceLandmarks().withFaceDescriptor();
-      const selfieDetection = await faceapi.detectSingleFace(selfieImg).withFaceLandmarks().withFaceDescriptor();
-      
+
+      const idDetection = await faceapi
+        .detectSingleFace(idImg)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      const selfieDetection = await faceapi
+        .detectSingleFace(selfieImg)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
       if (!idDetection || !selfieDetection) {
         setError('Couldn’t detect face in ID or selfie');
         return false;
       }
-      
-      const distance = faceapi.euclideanDistance(idDetection.descriptor, selfieDetection.descriptor);
-      console.log('Face match distance:', distance);
+
+      const distance = faceapi.euclideanDistance(
+        idDetection.descriptor,
+        selfieDetection.descriptor
+      );
       return distance < 0.6;
     } catch (err) {
-      console.error('Face match error:', err);
       setError('Face verification failed—check files and try again');
       return false;
     }
@@ -67,58 +67,45 @@ function UploadArtistDocs() {
       setError('ID document and portfolio are required');
       return;
     }
+
     if (selfie) {
       const faceMatch = await verifyFaceMatch();
-      if (!faceMatch) {
-        setError('Face verification failed—ID and selfie don’t match');
-        return;
-      }
+      if (!faceMatch) return;
     }
-    const formData = new FormData();
-    formData.append('idDocument', idDocument);
-    formData.append('proofOfWork', proofOfWork);
-    if (selfie) formData.append('selfie', selfie);
+
     try {
       const token = localStorage.getItem('accessToken');
-      if (!token) throw new Error('No access token—please log in');
-      console.log('Uploading with token:', token.slice(0, 20) + '...');
-      const response = await axios.post('http://localhost:3000/api/upload-artist-docs', formData, {
+      const formData = new FormData();
+      formData.append('idDocument', idDocument);
+      formData.append('proofOfWork', proofOfWork);
+      if (selfie) formData.append('selfie', selfie);
+
+      const res = await axios.post('http://localhost:3000/api/upload-artist-docs', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log('Upload response:', response.data);
 
-      // Refresh user data
-      const userResponse = await axios.get('http://localhost:3000/api/users/me', {
+      const userRes = await axios.get('http://localhost:3000/api/users/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('Refreshed user data:', userResponse.data);
 
-      // Update AuthContext user state
-      setUser(userResponse.data);
-
+      setUser(userRes.data);
       navigate('/dashboard');
     } catch (err) {
-      const errorMsg = err.response?.data?.error || err.message || 'Unknown error';
-      console.error('Upload error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        stack: err.stack,
-      });
-      setError(errorMsg);
+      const msg = err.response?.data?.error || err.message;
+      setError(msg);
     }
   };
 
   return (
     <div className="container">
       <h1>Become an Artist</h1>
-      <p>Submit your ID and portfolio for admin review.</p>
+      <p className="text-center">Submit your ID and portfolio for admin review.</p>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleSubmit}>
-        <div>
+        <div className="form-group">
           <label>ID Document (PDF/JPG/PNG):</label>
           <input
             type="file"
@@ -127,7 +114,7 @@ function UploadArtistDocs() {
             required
           />
         </div>
-        <div>
+        <div className="form-group">
           <label>Portfolio (PDF/JPG/PNG):</label>
           <input
             type="file"
@@ -136,7 +123,7 @@ function UploadArtistDocs() {
             required
           />
         </div>
-        <div>
+        <div className="form-group">
           <label>Selfie (Optional - JPG/PNG):</label>
           <input
             type="file"
@@ -145,7 +132,7 @@ function UploadArtistDocs() {
           />
           <small>For face verification—optional for now.</small>
         </div>
-        <button type="submit" disabled={!modelsLoaded && selfie}>
+        <button className="button" type="submit" disabled={!modelsLoaded && selfie}>
           Submit for Review
         </button>
       </form>
