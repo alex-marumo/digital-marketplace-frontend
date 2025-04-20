@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -13,8 +14,11 @@
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "face-api.js": "^0.22.2",
+    "http-proxy-middleware": "^3.0.5",
     "keycloak-connect": "^26.1.1",
     "keycloak-js": "^26.1.4",
+    "lucide-react": "^0.501.0",
     "rate-limiter-flexible": "^7.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -47,5 +51,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-app-rewired": "^2.2.1"
   }
 }
