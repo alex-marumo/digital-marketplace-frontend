@@ -1,0 +1,81 @@
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+
+/* CSS Variables for colors and spacing */
+:root {
+  --color-bg: #F7F7F7;
+  --color-text: #2C2C2E;
+  --color-header-footer: #2C2C2E;
+  --color-white: #FFFFFF;
+  --color-orange: #FF9500;
+  --color-orange-light: #FFAA33;
+  --color-orange-dark: #E68600;
+  --color-teal: #006D77;
+  --color-teal-light: #008B99;
+  --color-teal-dark: #00555E;
+  --color-gray-light: #E5E5EA;
+  --color-gray: #D1D1D6;
+  --color-gray-dark: #3A3A3C;
+  --color-muted: #8E8E93;
+  --color-subtle: #666;
+  --color-input-bg: #F2F2F7;
+  --color-heading: #555555;
+  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.2);
+  --space-2xl: 30px;
+  --space-3xl: 40px;
+  --focus-ring: 0 0 0 3px var(--color-orange-light);
+  --radius-lg: 18px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+  --space-xs: 5px;
+  --space-sm: 8px;
+  --space-md: 10px;
+  --space-lg: 15px;
+  --space-xl: 20px;
+  --transition: 0.3s ease;
+}
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-bg); /* Soft off-white background */
+  color: var(--color-text); /* Dark charcoal text */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Font Loading Optimization */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Inter Regular'), local('Inter-Regular'),
+       url('https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local('Inter Medium'), local('Inter-Medium'),
+       url('https://fonts.gstatic.com/s/inter/v12/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Playfair Display Bold'), local('PlayfairDisplay-Bold'),
+       url('https://fonts.gstatic.com/s/playfairdisplay/v30/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKeiukDX.woff2') format('woff2');
+}

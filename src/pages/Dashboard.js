@@ -78,17 +78,31 @@ function Dashboard() {
         <>
           <div className="card text-center m-bottom">
             <h1 className="text-2xl font-bold mb-1">Welcome, {user?.name || 'User'} 👋</h1>
-            <p className="text-muted text-sm">{user?.role === 'artist' ? 'Create, showcase, and sell your art' : 'Browse and buy community-crafted masterpieces'}</p>
+            <p className="text-muted text-sm">
+              {user?.role === 'artist'
+                ? 'Create, showcase, and sell your art'
+                : 'Browse and buy community-crafted masterpieces'}
+            </p>
           </div>
 
           {user?.role === 'artist' && (
             <>
               <div className="card m-bottom">
-                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><Brush size={20} /> Your Art Collection</h2>
-                <Link to="/add-artwork" className="button m-bottom">Add New Artwork</Link>
-                <div className="artwork-list">
-                  {artworks.length > 0 ? artworks.map(a => <ArtworkCard key={a.artwork_id} artwork={a} />) : <p>You haven’t added any artworks yet.</p>}
-                </div>
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                  <Brush size={20} /> Your Art Collection
+                </h2>
+                <Link to="/add-artwork" className="button m-bottom">
+                  Add New Artwork
+                </Link>
+                {artworks.length > 0 ? (
+                  <div className="artwork-list">
+                    {artworks.map((a) => (
+                      <ArtworkCard key={a.artwork_id} artwork={a} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted">You haven’t added any artworks yet.</p>
+                )}
               </div>
             </>
           )}
@@ -96,18 +110,34 @@ function Dashboard() {
           {user?.role === 'buyer' && (
             <>
               <div className="card m-bottom">
-                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><ShoppingCart size={20} /> Featured Artworks</h2>
-                <p className="text-sm text-muted">Hand-picked for your taste.</p>
-                <div className="artwork-list">
-                  {artworks.length > 0 ? artworks.map(a => <ArtworkCard key={a.artwork_id} artwork={a} />) : <p>No artworks available yet.</p>}
-                </div>
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                  <ShoppingCart size={20} /> Featured Artworks
+                </h2>
+                <p className="text-sm text-muted mb-2">Hand-picked for your taste.</p>
+                {artworks.length > 0 ? (
+                  <div className="artwork-list">
+                    {artworks.map((a) => (
+                      <ArtworkCard key={a.artwork_id} artwork={a} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted">No artworks available yet.</p>
+                )}
               </div>
 
-              <Link to="/search" className="button m-bottom">Search More Art</Link>
+              <div className="text-center m-bottom">
+                <Link to="/search" className="button">
+                  Search More Art
+                </Link>
+              </div>
 
               <div className="card m-bottom">
-                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2"><Clock size={20} /> Recently Viewed</h2>
-                <p className="text-sm text-muted">(This can show user-specific saved/viewed art later)</p>
+                <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
+                  <Clock size={20} /> Recently Viewed
+                </h2>
+                <p className="text-sm text-muted text-center">
+                  (This can show user-specific saved/viewed art later)
+                </p>
               </div>
             </>
           )}
