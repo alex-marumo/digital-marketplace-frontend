@@ -1,0 +1,23 @@
+/* Print Styles */
+@media print {
+  body {
+    background: var(--color-white);
+    color: var(--color-text);
+  }
+
+  .header,
+  .footer,
+  .category-buttons,
+  button:not(.print-button) {
+    display: none;
+  }
+
+  .card {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .artwork-list {
+    gap: var(--space-xl);
+  }
+}

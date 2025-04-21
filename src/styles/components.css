@@ -1,0 +1,187 @@
+/* Buttons */
+.button {
+  background-color: var(--color-orange); /* Vibrant orange for primary actions */
+  color: var(--color-white);
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--transition), box-shadow var(--transition);
+  width: 100%;
+  text-align: center;
+  text-decoration: none; /* For Link components */
+}
+
+.button:hover {
+  background-color: var(--color-orange-light); /* Lighter orange on hover */
+  box-shadow: var(--shadow-md);
+}
+
+.button:active {
+  background-color: var(--color-orange-dark); /* Darker orange when pressed */
+}
+
+/* Secondary Button */
+.button-secondary {
+  background-color: var(--color-teal); /* Deep teal for secondary actions */
+  color: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.button-secondary:hover {
+  background-color: var(--color-teal-light); /* Lighter teal on hover */
+}
+
+.button-secondary:active {
+  background-color: var(--color-teal-dark); /* Darker teal when pressed */
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: var(--space-lg);
+}
+
+.tab {
+  background-color: var(--color-gray-light); /* Light gray, like category buttons */
+  color: var(--color-text); /* Dark charcoal text */
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+.tab:hover {
+  background-color: var(--color-gray); /* Slightly darker gray on hover */
+}
+
+.tab.active {
+  background-color: var(--color-orange); /* Orange for active tab */
+  color: var(--color-white); /* White text when active */
+  box-shadow: var(--shadow-sm);
+}
+
+.tab.active:hover {
+  background-color: var(--color-orange-light); /* Lighter orange on hover when active */
+}
+
+/* Cards */
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg); /* Added padding */
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.card img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.card-content {
+  padding: var(--space-lg);
+}
+
+.card-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.card-price {
+  font-size: 14px;
+  color: var(--color-orange);
+  margin-bottom: var(--space-sm);
+}
+
+.card-artist {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+/* Category Buttons */
+.category-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns for mobile */
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.category-button {
+  background-color: var(--color-gray-light);
+  color: var(--color-text);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition);
+  text-decoration: none; /* For Link components */
+  text-align: center;
+  min-height: 40px; /* Ensure consistent height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-button:hover {
+  background-color: var(--color-gray);
+}
+
+/* Button Base Styles */
+.button-base {
+  padding: var(--space-md) var(--space-xl);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--transition),
+              box-shadow var(--transition),
+              transform var(--transition);
+}
+
+.button-base:hover:not(:disabled) {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.button-base:active:not(:disabled) {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(0);
+}
+
+.button-base:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.button-base:disabled {
+  background-color: var(--color-gray);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}

@@ -1,0 +1,35 @@
+/* Responsive Design */
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+    padding: 30px;
+  }
+  .artwork-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .button {
+    width: auto;
+  }
+  h1 {
+    font-size: 40px;
+  }
+  h2 {
+    font-size: 24px;
+  }
+  .category-buttons {
+    grid-template-columns: repeat(4, 1fr); /* 4 columns for tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding: 40px;
+  }
+  .artwork-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .category-buttons {
+    grid-template-columns: repeat(4, 1fr); /* 4 columns for desktop */
+  }
+}
