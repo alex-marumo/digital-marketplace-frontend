@@ -1,0 +1,38 @@
+/* Typography */
+h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-heading);
+  margin: var(--space-lg) 0 var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-heading);
+  margin-bottom: var(--space-sm);
+}
+
+/* Subtitle (for "Explore Unique Artworks From Your Community") */
+.text-center p {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--color-subtle);
+  margin-bottom: var(--space-sm);
+}

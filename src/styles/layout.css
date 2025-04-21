@@ -1,0 +1,169 @@
+/* Container */
+.container {
+  max-width: 375px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+}
+
+/* Header */
+.header {
+  background-color: var(--color-header-footer); /* Dark charcoal header */
+  color: var(--color-white);
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.menu-icon {
+  flex: 1;
+}
+
+.menu-link {
+  color: var(--color-white);
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.hamburger-icon {
+  font-size: 20px;
+}
+
+.header-title {
+  flex: 2;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-white);
+  text-decoration: none; /* For Link component */
+}
+
+.auth-buttons {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.header a {
+  color: var(--color-white);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.header a:hover {
+  color: var(--color-orange); /* Vibrant orange on hover */
+}
+
+.header-link {
+  margin-left: 10px; /* Space between links */
+}
+
+#user-welcome {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Hamburger Menu Styles */
+.menu-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-white);
+  font-size: 20px; /* Match .hamburger-icon size */
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 60px; /* Adjust based on header height */
+  left: 0;
+  background-color: var(--color-header-footer); /* Match header background */
+  width: 200px;
+  box-shadow: var(--shadow-sm);
+  z-index: 1000;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-list li {
+  padding: var(--space-md) var(--space-xl);
+}
+
+.menu-list li a {
+  color: var(--color-white);
+  text-decoration: none;
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.menu-list li a:hover {
+  background-color: var(--color-gray-dark); /* Slightly lighter charcoal on hover */
+}
+
+.menu-logout {
+  background: none;
+  border: none;
+  color: var(--color-white);
+  padding: var(--space-md) var(--space-xl);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.menu-logout:hover {
+  background-color: var(--color-gray-dark); /* Slightly lighter charcoal on hover */
+}
+
+/* Footer */
+.footer {
+  background-color: var(--color-header-footer); /* Dark charcoal footer */
+  color: var(--color-white);
+  padding: var(--space-xl);
+  text-align: center;
+  font-size: 14px;
+}
+
+.footer a {
+  color: var(--color-white);
+  margin: 0 10px;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--color-orange);
+}
+
+/* Artwork Grid */
+.artwork-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg);
+}
+
+/* App Container and Main */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ensures the container takes up the full viewport height */
+}
+
+main {
+  flex: 1; /* Makes the main content grow to fill available space, pushing the footer down */
+}
