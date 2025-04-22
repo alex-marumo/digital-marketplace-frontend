@@ -88,3 +88,8 @@
   margin-bottom: var(--space-xs);
   display: block;
 }
+
+.form-label input[type="checkbox"] {
+  margin-right: var(--space-sm);
+  vertical-align: middle;
+}

@@ -44,3 +44,10 @@
     grid-template-columns: repeat(4, 1fr); /* 4 columns for desktop */
   }
 }
+
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 1rem;
+    max-width: 90%;
+  }
+}

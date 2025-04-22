@@ -14,8 +14,16 @@ function LoginRegister() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState('');
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Debug isLogin state
+  useEffect(() => {
+    console.log('isLogin state:', isLogin);
+  }, [isLogin]);
 
   // Load reCAPTCHA for registration
   useEffect(() => {
@@ -45,6 +53,29 @@ function LoginRegister() {
       };
     }
   }, [isLogin]);
+
+  // Handle Escape key and disable background scroll
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape' && showForgotPasswordModal) {
+        setShowForgotPasswordModal(false);
+        setForgotPasswordEmail('');
+        setForgotPasswordMessage(null);
+      }
+    };
+
+    if (showForgotPasswordModal) {
+      document.body.style.overflow = 'hidden'; // Disable scroll
+    } else {
+      document.body.style.overflow = 'auto'; // Restore scroll
+    }
+
+    window.addEventListener('keydown', handleEsc);
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = 'auto'; // Cleanup
+    };
+  }, [showForgotPasswordModal]);
 
   // Check user state after login
   const checkUserState = async (token) => {
@@ -124,6 +155,7 @@ function LoginRegister() {
       setError(errorMessage || 'Verification failed—check the code or try again.');
     }
   };
+
   const handleResendCode = async () => {
     setError(null);
     setSuccess(null);
@@ -136,76 +168,168 @@ function LoginRegister() {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setForgotPasswordMessage(null);
+
+    if (!forgotPasswordEmail) {
+      setForgotPasswordMessage({ type: 'error', text: 'Please enter your email.' });
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:3000/api/reset-password', { email: forgotPasswordEmail });
+      setForgotPasswordMessage({ type: 'success', text: 'Password reset email sent! Check your inbox.' });
+      setForgotPasswordEmail('');
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || error.message;
+      console.error('Forgot password error:', errorMessage);
+      setForgotPasswordMessage({ type: 'error', text: errorMessage || 'Failed to send reset email.' });
+    }
+  };
+
   return (
     <div className="container">
       {isVerificationStep || location.pathname === '/verify-email' ? (
         <form onSubmit={handleVerify}>
-          <h1>Verify Your Email</h1>
-          {error && <p className="text-center" style={{ color: 'red' }}>{error}</p>}
-          {success && <p className="text-center" style={{ color: 'green' }}>{success}</p>}
-          <div className="form-group">
+          <h1 className="text-3xl font-bold mb-6 text-center text-orange">Verify Your Email</h1>
+          {error && <p className="text-center bg-red-100 text-red-800 p-3 rounded-md mb-4">{error}</p>}
+          {success && <p className="text-center bg-green-100 text-green-800 p-3 rounded-md mb-4">{success}</p>}
+          <div className="form-group mb-4">
             <input
               type="text"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
               placeholder="Enter verification code"
+              className="form-input w-full p-2 border rounded-md focus:ring-orange focus:border-orange"
             />
           </div>
-          <button type="submit" className="button">Verify</button>
-          <p className="text-center">
+          <button type="submit" className="button bg-orange text-white py-2 px-4 rounded-md hover:bg-orange-dark transition w-full">
+            Verify
+          </button>
+          <p className="text-center mt-4">
             Didn’t get the code?{' '}
-            <button type="button" onClick={handleResendCode} className="link-button">
+            <button type="button" onClick={handleResendCode} className="link-button text-orange hover:underline">
               Resend Code
             </button>
           </p>
           <p className="text-center">
-            <button type="button" onClick={() => navigate('/login')} className="link-button">
+            <button type="button" onClick={() => navigate('/login')} className="link-button text-orange hover:underline">
               Back to Login
             </button>
           </p>
         </form>
       ) : (
         <form onSubmit={handleSubmit}>
-          <h1>{isLogin ? 'Login' : 'Register'}</h1>
-          {error && <p className="text-center" style={{ color: 'red' }}>{error}</p>}
-          {success && <p className="text-center" style={{ color: 'green' }}>{success}</p>}
+          <h1 className="text-3xl font-bold mb-6 text-center text-orange">{isLogin ? 'Login' : 'Register'}</h1>
+          {error && <p className="text-center bg-red-100 text-red-800 p-3 rounded-md mb-4">{error}</p>}
+          {success && <p className="text-center bg-green-100 text-green-800 p-3 rounded-md mb-4">{success}</p>}
           {!isLogin && (
-            <div className="form-group">
+            <div className="form-group mb-4">
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Full Name"
+                className="form-input w-full p-2 border rounded-md focus:ring-orange focus:border-orange"
               />
             </div>
           )}
-          <div className="form-group">
+          <div className="form-group mb-4">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
+              className="form-input w-full p-2 border rounded-md focus:ring-orange focus:border-orange"
             />
           </div>
-          <div className="form-group">
+          <div className="form-group mb-4">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
+              className="form-input w-full p-2 border rounded-md focus:ring-orange focus:border-orange"
             />
           </div>
           {!isLogin && (
-            <p style={{ color: '#666' }}>reCAPTCHA v3 running in background...</p>
+            <p className="text-center text-gray-600 mb-4">reCAPTCHA v3 running in background...</p>
           )}
-          <button type="submit" className="button">{isLogin ? 'Login' : 'Register'}</button>
-          <p className="text-center">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}
-            <button type="button" onClick={() => setIsLogin(!isLogin)} className="link-button">
+          <button type="submit" className="button bg-orange text-white py-2 px-4 rounded-md hover:bg-orange-dark transition w-full">
+            {isLogin ? 'Login' : 'Register'}
+          </button>
+          {isLogin && (
+            <p className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => setShowForgotPasswordModal(true)}
+                className="link-button text-orange hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </p>
+          )}
+          <p className="text-center mt-4">
+            {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+            <button type="button" onClick={() => setIsLogin(!isLogin)} className="link-button text-orange hover:underline">
               {isLogin ? 'Register' : 'Login'}
             </button>
           </p>
         </form>
+      )}
+
+      {/* Forgot Password Modal */}
+      {showForgotPasswordModal && (
+        <div className="modal fixed inset-0 bg-black flex items-center justify-center z-1000">
+          <div className="modal-content bg-white p-6 rounded-lg border-2 border-gray-500 shadow-[0_10px_30px_rgba(0,0,0,0.4)] max-w-[320px] w-full animate-pop-in">
+            <h3 className="text-xl font-semibold mb-4 text-orange">Reset Your Password</h3>
+            {forgotPasswordMessage && (
+              <div
+                className={`message p-3 mb-4 rounded-md animate-fade-in ${
+                  forgotPasswordMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}
+              >
+                {forgotPasswordMessage.text}
+              </div>
+            )}
+            <form onSubmit={handleForgotPassword}>
+              <div className="form-group mb-4">
+                <label htmlFor="forgotPasswordEmail" className="form-label block text-gray-700 font-medium mb-1">
+                  Email
+                </label>
+                <input
+                  id="forgotPasswordEmail"
+                  type="email"
+                  value={forgotPasswordEmail}
+                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="form-input w-full p-2 border rounded-md focus:ring-orange focus:border-orange"
+                  required
+                />
+              </div>
+              <div className="flex justify-center gap-2">
+                <button
+                  type="button"
+                  className="button bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition w-28"
+                  onClick={() => {
+                    setShowForgotPasswordModal(false);
+                    setForgotPasswordEmail('');
+                    setForgotPasswordMessage(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="button bg-orange text-white py-2 px-4 rounded-md hover:bg-orange-dark transition w-28"
+                >
+                  Send Reset Link
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

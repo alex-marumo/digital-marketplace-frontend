@@ -168,3 +168,8 @@
 main {
   flex: 1; /* Makes the main content grow to fill available space, pushing the footer down */
 }
+
+.settings-header {
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, var(--color-teal-light) 0%, var(--color-orange-light) 100%);
+}

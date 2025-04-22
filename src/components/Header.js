@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Menu, LogOut, UserCircle2, ImagePlus, Palette, MessageSquare, ShoppingBag, Home, Grid,
   Search, Users, FileText, Settings, ShoppingCart, FilePlus
-} from 'lucide-react'; // Imported icons for all the key elements
+} from 'lucide-react';
 import '../styles/styles.css';
 
 function Header() {
@@ -44,12 +44,20 @@ function Header() {
                 <Link to="/profile" className="header-link">
                   <UserCircle2 size={16} /> Profile
                 </Link>
+                <Link to="/settings" className="header-link">
+                  <Settings size={16} /> Settings
+                </Link>
               </>
             )}
             {user.role === 'admin' && (
-              <Link to="/admin-panel" className="header-link">
-                <Users size={16} /> Admin Panel
-              </Link>
+              <>
+                <Link to="/admin-panel" className="header-link">
+                  <Users size={16} /> Admin Panel
+                </Link>
+                <Link to="/settings" className="header-link">
+                  <Settings size={16} /> Settings
+                </Link>
+              </>
             )}
             <button onClick={() => { logout(); navigate('/'); }} className="header-link">
               <LogOut size={16} /> Logout
@@ -90,11 +98,16 @@ function Header() {
                     <ShoppingBag size={16} /> Orders
                   </Link>
                 </li>
-                  <li>
-                    <Link to="/artworks" onClick={toggleMenu}>
+                <li>
+                  <Link to="/artworks" onClick={toggleMenu}>
                     <Search size={16} /> Search Artworks
-                    </Link>
-                  </li>
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/settings" onClick={toggleMenu}>
+                    <Settings size={16} /> Settings
+                  </Link>
+                </li>
                 <li>
                   <button
                     onClick={() => { logout(); navigate('/'); toggleMenu(); }}
@@ -133,6 +146,11 @@ function Header() {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/settings" onClick={toggleMenu}>
+                    <Settings size={16} /> Settings
+                  </Link>
+                </li>
+                <li>
                   <button
                     onClick={() => { logout(); navigate('/'); toggleMenu(); }}
                     className="menu-logout"
@@ -147,6 +165,11 @@ function Header() {
                 <li>
                   <Link to="/admin-panel" onClick={toggleMenu}>
                     <Users size={16} /> Admin Panel
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/settings" onClick={toggleMenu}>
+                    <Settings size={16} /> Settings
                   </Link>
                 </li>
                 <li>
