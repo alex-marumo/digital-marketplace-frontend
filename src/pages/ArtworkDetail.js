@@ -11,7 +11,15 @@ function ArtworkDetail() {
 
   useEffect(() => {
     axios.get(`/api/artwork/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setArtwork(res.data));
+      .then((res) => setArtwork(res.data))
+      .catch((err) => console.error('Fetch artwork error:', err));
+
+    // Track recently viewed
+    const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+    if (!viewed.includes(id)) {
+      viewed.push(id);
+      localStorage.setItem('recentlyViewed', JSON.stringify(viewed.slice(-5)));
+    }
   }, [id, token]);
 
   const handlePurchase = async () => {
@@ -34,12 +42,18 @@ function ArtworkDetail() {
   return (
     <div className="container">
       <h1>{artwork.title}</h1>
-      <img src={artwork.image} alt={artwork.title} style={{ width: '100%', borderRadius: '18px' }} />
+      <img
+        src={artwork.images?.[0] || '/placeholder.jpg'}
+        alt={artwork.title}
+        className="artwork-image"
+      />
       <p>{artwork.description}</p>
-      <p className="card-price">${artwork.price}</p>
-      <p className="card-artist">by {artwork.artist}</p>
-      {user.role === 'buyer' && <button className="button" onClick={handlePurchase}>Buy Now</button>}
-      {user.role === 'buyer' && (
+      <p className="card-price">${artwork.price?.toFixed(2)}</p>
+      <p className="card-artist">by {artwork.artist_name || 'Unknown Artist'}</p>
+      {user?.role === 'buyer' && (
+        <button className="button" onClick={handlePurchase}>Buy Now</button>
+      )}
+      {user?.role === 'buyer' && (
         <form onSubmit={handleReview}>
           <div className="form-group">
             <input
@@ -47,6 +61,7 @@ function ArtworkDetail() {
               value={review}
               onChange={(e) => setReview(e.target.value)}
               placeholder="Leave a review"
+              className="form-input"
             />
           </div>
           <button type="submit" className="button">Submit Review</button>

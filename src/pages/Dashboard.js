@@ -10,6 +10,7 @@ function Dashboard() {
   const { authenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const [artworks, setArtworks] = useState([]);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [showRolePrompt, setShowRolePrompt] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -22,9 +23,7 @@ function Dashboard() {
         if (!token) throw new Error('Missing token');
 
         if (!user) await new Promise((res) => setTimeout(res, 100));
-
         if (!user?.role) return setShowRolePrompt(true);
-
         if (user.role === 'admin') return navigate('/admin');
 
         const { data } = await axios.get('http://localhost:3001/api/artworks', {
@@ -36,8 +35,13 @@ function Dashboard() {
           setArtworks(artistArtworks);
         } else {
           setArtworks(data);
+          // Fetch recently viewed
+          const viewedIds = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+          const viewedArtworks = data.filter(a => viewedIds.includes(a.artwork_id.toString()));
+          setRecentlyViewed(viewedArtworks);
         }
       } catch (error) {
+        console.error('Fetch artworks error:', error.response?.data, error.message);
         logout();
         navigate('/login-register');
       } finally {
@@ -51,7 +55,6 @@ function Dashboard() {
     try {
       const token = localStorage.getItem('accessToken');
       if (role === 'artist') return navigate('/request-artist');
-
       setShowRolePrompt(false);
       const { data } = await axios.get('http://localhost:3001/api/artworks', {
         headers: { Authorization: `Bearer ${token}` },
@@ -135,9 +138,17 @@ function Dashboard() {
                 <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
                   <Clock size={20} /> Recently Viewed
                 </h2>
-                <p className="text-sm text-muted text-center">
-                  (This can show user-specific saved/viewed art later)
-                </p>
+                {recentlyViewed.length > 0 ? (
+                  <div className="artwork-list">
+                    {recentlyViewed.map((a) => (
+                      <ArtworkCard key={a.artwork_id} artwork={a} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted text-center">
+                    No recently viewed artworks.
+                  </p>
+                )}
               </div>
             </>
           )}

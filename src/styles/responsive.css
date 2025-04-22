@@ -19,6 +19,17 @@
   .category-buttons {
     grid-template-columns: repeat(4, 1fr); /* 4 columns for tablet */
   }
+
+  .action-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+  }
+
+  .action-buttons .button {
+    width: auto;
+    min-width: 200px;
+  }
 }
 
 @media (min-width: 1024px) {

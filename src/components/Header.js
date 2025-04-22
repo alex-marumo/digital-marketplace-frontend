@@ -90,11 +90,11 @@ function Header() {
                     <ShoppingBag size={16} /> Orders
                   </Link>
                 </li>
-                <li>
-                  <Link to="/search" onClick={toggleMenu}>
+                  <li>
+                    <Link to="/artworks" onClick={toggleMenu}>
                     <Search size={16} /> Search Artworks
-                  </Link>
-                </li>
+                    </Link>
+                  </li>
                 <li>
                   <button
                     onClick={() => { logout(); navigate('/'); toggleMenu(); }}

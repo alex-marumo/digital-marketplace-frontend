@@ -1,5 +1,10 @@
 /* Import Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;700&display=swap');
+
+.login-register-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700; /* Must be 400 or 700 */
+}
 
 /* CSS Variables for colors and spacing */
 :root {

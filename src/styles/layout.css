@@ -3,6 +3,7 @@
   max-width: 375px;
   margin: 0 auto;
   padding: var(--space-xl);
+  @apply max-w-7xl;
 }
 
 /* Header */
