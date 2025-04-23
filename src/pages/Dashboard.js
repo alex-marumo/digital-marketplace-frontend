@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ArtworkCard from '../components/ArtworkCard';
 import RolePromptModal from '../components/RolePromptModal';
-import { Sparkles, UserCircle2, Brush, ShoppingCart, Clock } from 'lucide-react';
+import { Sparkles, UserCircle2, Brush, ShoppingCart, Clock, ImagePlus } from 'lucide-react';
 
 function Dashboard() {
   const { authenticated, user, logout } = useAuth();
@@ -94,9 +94,11 @@ function Dashboard() {
                 <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
                   <Brush size={20} /> Your Art Collection
                 </h2>
-                <Link to="/add-artwork" className="button m-bottom">
-                  Add New Artwork
-                </Link>
+                <div className="text-center m-bottom">
+                  <Link to="/add-artwork" className="button-add-artwork">
+                    <ImagePlus size={20} className="inline mr-2" /> Add New Artwork
+                  </Link>
+                </div>
                 {artworks.length > 0 ? (
                   <div className="artwork-list">
                     {artworks.map((a) => (
@@ -129,7 +131,7 @@ function Dashboard() {
               </div>
 
               <div className="text-center m-bottom">
-                <Link to="/search" className="button">
+                <Link to="/artworks" className="button">
                   Search More Art
                 </Link>
               </div>

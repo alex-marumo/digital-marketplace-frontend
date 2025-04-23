@@ -281,56 +281,76 @@ function LoginRegister() {
 
       {/* Forgot Password Modal */}
       {showForgotPasswordModal && (
-        <div className="modal fixed inset-0 bg-black flex items-center justify-center z-1000">
-          <div className="modal-content bg-white p-6 rounded-lg border-2 border-gray-500 shadow-[0_10px_30px_rgba(0,0,0,0.4)] max-w-[320px] w-full animate-pop-in">
-            <h3 className="text-xl font-semibold mb-4 text-orange">Reset Your Password</h3>
-            {forgotPasswordMessage && (
-              <div
-                className={`message p-3 mb-4 rounded-md animate-fade-in ${
-                  forgotPasswordMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}
-              >
-                {forgotPasswordMessage.text}
-              </div>
-            )}
-            <form onSubmit={handleForgotPassword}>
-              <div className="form-group mb-4">
-                <label htmlFor="forgotPasswordEmail" className="form-label block text-gray-700 font-medium mb-1">
-                  Email
-                </label>
-                <input
-                  id="forgotPasswordEmail"
-                  type="email"
-                  value={forgotPasswordEmail}
-                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="form-input w-full p-2 border rounded-md focus:ring-orange focus:border-orange"
-                  required
-                />
-              </div>
-              <div className="flex justify-center gap-2">
-                <button
-                  type="button"
-                  className="button bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 transition w-28"
-                  onClick={() => {
-                    setShowForgotPasswordModal(false);
-                    setForgotPasswordEmail('');
-                    setForgotPasswordMessage(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="button bg-orange text-white py-2 px-4 rounded-md hover:bg-orange-dark transition w-28"
-                >
-                  Send Reset Link
-                </button>
-              </div>
-            </form>
+  <>
+    <div
+      className="modal-overlay"
+      onClick={() => {
+        setShowForgotPasswordModal(false);
+        setForgotPasswordEmail('');
+        setForgotPasswordMessage(null);
+      }}
+    />
+    <div className="modal">
+      <div className="modal-content">
+        <button
+          type="button"
+          className="modal-close-btn"
+          onClick={() => {
+            setShowForgotPasswordModal(false);
+            setForgotPasswordEmail('');
+            setForgotPasswordMessage(null);
+          }}
+        >
+          ×
+        </button>
+        <h3 className="modal-title">Reset Your Password</h3>
+        {forgotPasswordMessage && (
+          <div
+            className={`message p-3 mb-4 rounded-md ${
+              forgotPasswordMessage.type === 'success'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {forgotPasswordMessage.text}
           </div>
-        </div>
-      )}
+        )}
+        <form onSubmit={handleForgotPassword}>
+          <div className="form-group mb-4">
+            <label htmlFor="forgotPasswordEmail" className="form-label block text-gray-700 font-medium mb-1">
+              Email
+            </label>
+            <input
+              id="forgotPasswordEmail"
+              type="email"
+              value={forgotPasswordEmail}
+              onChange={(e) => setForgotPasswordEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="modal-input"
+              required
+            />
+          </div>
+          <div className="flex justify-center gap-3">
+            <button
+              type="button"
+              className="modal-cancel-btn w-36"
+              onClick={() => {
+                setShowForgotPasswordModal(false);
+                setForgotPasswordEmail('');
+                setForgotPasswordMessage(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="modal-reset-btn w-36">
+              Send Reset Link
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </>
+)}
     </div>
   );
 }

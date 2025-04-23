@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Menu, LogOut, UserCircle2, ImagePlus, Palette, MessageSquare, ShoppingBag, Home, Grid,
-  Search, Users, FileText, Settings, ShoppingCart, FilePlus
+  Search, Users, Settings
 } from 'lucide-react';
 import '../styles/styles.css';
 
@@ -14,7 +14,15 @@ function Header() {
   const [loginClicked, setLoginClicked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isLandingPage = location.pathname === '/';
+  const isLandingOrLoginPage = location.pathname === '/' || location.pathname === '/login-register';
+
+  // Redirect authenticated users from '/' to '/dashboard'
+  useEffect(() => {
+    console.log('Redirect check:', { authenticated, isVerified: user?.is_verified, path: location.pathname, user });
+    if (authenticated && user?.is_verified && location.pathname === '/') {
+      navigate('/dashboard');
+    }
+  }, [authenticated, user, location.pathname, navigate]);
 
   const handleLoginClick = () => {
     setLoginClicked(true);
@@ -22,7 +30,8 @@ function Header() {
   };
 
   const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
+    setMenuOpen(prev => !prev);
+    console.log('Menu open:', !menuOpen);
   };
 
   return (
@@ -34,7 +43,7 @@ function Header() {
       </div>
       <Link to="/" className="header-title">ARTISTIC</Link>
       <div className="auth-buttons">
-        {authenticated && user?.is_verified && (
+        {authenticated && user?.is_verified ? (
           <>
             {(user.role === 'buyer' || user.role === 'artist') && (
               <>
@@ -63,131 +72,147 @@ function Header() {
               <LogOut size={16} /> Logout
             </button>
           </>
-        )}
-        {!authenticated || !user?.is_verified ? (
-          isLandingPage && !loginClicked && (
+        ) : (
+          isLandingOrLoginPage && !loginClicked && (
             <Link to="/login-register" className="header-link" onClick={handleLoginClick}>
               <LogOut size={16} /> Login/Register
             </Link>
           )
-        ) : null}
+        )}
       </div>
 
       {menuOpen && (
         <div className="menu-dropdown">
           <ul className="menu-list">
-            <li>
-              <Link to="/" onClick={toggleMenu}>
-                <Home size={16} /> Home
-              </Link>
-            </li>
-            {authenticated && user?.is_verified && user?.role === 'buyer' && (
+            {console.log('Menu items rendering:', { authenticated, user, isLandingOrLoginPage })}
+            {isLandingOrLoginPage && (
               <>
                 <li>
-                  <Link to="/dashboard" onClick={toggleMenu}>
-                    <Grid size={16} /> Dashboard
+                  <Link to="/" onClick={toggleMenu}>
+                    <Home size={16} /> Home
                   </Link>
                 </li>
-                <li>
-                  <Link to="/profile" onClick={toggleMenu}>
-                    <UserCircle2 size={16} /> Profile
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/orders" onClick={toggleMenu}>
-                    <ShoppingBag size={16} /> Orders
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/artworks" onClick={toggleMenu}>
-                    <Search size={16} /> Search Artworks
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/settings" onClick={toggleMenu}>
-                    <Settings size={16} /> Settings
-                  </Link>
-                </li>
-                <li>
-                  <button
-                    onClick={() => { logout(); navigate('/'); toggleMenu(); }}
-                    className="menu-logout"
-                  >
-                    <LogOut size={16} /> Logout
-                  </button>
-                </li>
+                {!authenticated && (
+                  <li>
+                    <Link to="/login-register" onClick={toggleMenu}>
+                      <LogOut size={16} /> Login/Register
+                    </Link>
+                  </li>
+                )}
               </>
             )}
-            {authenticated && user?.is_verified && user?.role === 'artist' && (
+            {authenticated && user?.is_verified ? (
               <>
-                <li>
-                  <Link to="/dashboard" onClick={toggleMenu}>
-                    <Grid size={16} /> Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/profile" onClick={toggleMenu}>
-                    <UserCircle2 size={16} /> Profile
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/artworks" onClick={toggleMenu}>
-                    <Palette size={16} /> My Artworks
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/messages" onClick={toggleMenu}>
-                    <MessageSquare size={16} /> Messages
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/add-artwork" onClick={toggleMenu}>
-                    <ImagePlus size={16} /> Add Artwork
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/settings" onClick={toggleMenu}>
-                    <Settings size={16} /> Settings
-                  </Link>
-                </li>
-                <li>
-                  <button
-                    onClick={() => { logout(); navigate('/'); toggleMenu(); }}
-                    className="menu-logout"
-                  >
-                    <LogOut size={16} /> Logout
-                  </button>
-                </li>
+                {user.role === 'buyer' && (
+                  <>
+                    <li>
+                      <Link to="/dashboard" onClick={toggleMenu}>
+                        <Grid size={16} /> Dashboard
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/profile" onClick={toggleMenu}>
+                        <UserCircle2 size={16} /> Profile
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/orders" onClick={toggleMenu}>
+                        <ShoppingBag size={16} /> Orders
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/artworks" onClick={toggleMenu}>
+                        <Search size={16} /> Search Artworks
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/settings" onClick={toggleMenu}>
+                        <Settings size={16} /> Settings
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { logout(); navigate('/'); toggleMenu(); }}
+                        className="menu-logout"
+                      >
+                        <LogOut size={16} /> Logout
+                      </button>
+                    </li>
+                  </>
+                )}
+                {user.role === 'artist' && (
+                  <>
+                    <li>
+                      <Link to="/dashboard" onClick={toggleMenu}>
+                        <Grid size={16} /> Dashboard
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/profile" onClick={toggleMenu}>
+                        <UserCircle2 size={16} /> Profile
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/artworks" onClick={toggleMenu}>
+                        <Palette size={16} /> My Artworks
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/messages" onClick={toggleMenu}>
+                        <MessageSquare size={16} /> Messages
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/add-artwork" onClick={toggleMenu}>
+                        <ImagePlus size={16} /> Add Artwork
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/settings" onClick={toggleMenu}>
+                        <Settings size={16} /> Settings
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { logout(); navigate('/'); toggleMenu(); }}
+                        className="menu-logout"
+                      >
+                        <LogOut size={16} /> Logout
+                      </button>
+                    </li>
+                  </>
+                )}
+                {user.role === 'admin' && (
+                  <>
+                    <li>
+                      <Link to="/admin-panel" onClick={toggleMenu}>
+                        <Users size={16} /> Admin Panel
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/settings" onClick={toggleMenu}>
+                        <Settings size={16} /> Settings
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => { logout(); navigate('/'); toggleMenu(); }}
+                        className="menu-logout"
+                      >
+                        <LogOut size={16} /> Logout
+                      </button>
+                    </li>
+                  </>
+                )}
               </>
-            )}
-            {authenticated && user?.is_verified && user?.role === 'admin' && (
-              <>
+            ) : (
+              !isLandingOrLoginPage && (
                 <li>
-                  <Link to="/admin-panel" onClick={toggleMenu}>
-                    <Users size={16} /> Admin Panel
+                  <Link to="/login-register" onClick={toggleMenu}>
+                    <LogOut size={16} /> Login/Register
                   </Link>
                 </li>
-                <li>
-                  <Link to="/settings" onClick={toggleMenu}>
-                    <Settings size={16} /> Settings
-                  </Link>
-                </li>
-                <li>
-                  <button
-                    onClick={() => { logout(); navigate('/'); toggleMenu(); }}
-                    className="menu-logout"
-                  >
-                    <LogOut size={16} /> Logout
-                  </button>
-                </li>
-              </>
-            )}
-            {(!authenticated || !user?.is_verified) && (
-              <li>
-                <Link to="/login-register" onClick={toggleMenu}>
-                  <LogOut size={16} /> Login/Register
-                </Link>
-              </li>
+              )
             )}
           </ul>
         </div>
