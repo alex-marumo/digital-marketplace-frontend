@@ -570,3 +570,129 @@
     max-width: 300px; /* Limit width on mobile */
   }
 }
+
+.profile-pic-wrapper {
+  position: relative;
+  cursor: pointer;
+}
+
+.profile-pic {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f97316; /* Orange border */
+}
+
+.preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.preview-modal-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  position: relative;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.preview-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #2d3748;
+}
+
+.preview-pic-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.preview-pic {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #f97316;
+}
+
+.pencil-icon {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: #2dd4bf; /* Teal */
+  border-radius: 50%;
+  padding: 8px;
+  cursor: pointer;
+  color: #fff;
+  transition: background-color 0.3s ease;
+}
+
+.pencil-icon:hover {
+  background: #26a69a;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.button {
+  background-color: #f97316; /* Orange */
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.button:hover {
+  background-color: #e69500;
+}
+
+.button-secondary {
+  background-color: #2dd4bf; /* Teal */
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.button-secondary:hover {
+  background-color: #26a69a;
+}
+
+@media (max-width: 640px) {
+  .profile-pic {
+    width: 48px;
+    height: 48px;
+  }
+
+  .preview-pic {
+    width: 150px;
+    height: 150px;
+  }
+
+  .preview-modal-content {
+    padding: 16px;
+  }
+
+  .pencil-icon {
+    padding: 6px;
+    bottom: 4px;
+    right: 4px;
+  }
+}

@@ -75,7 +75,8 @@ function App() {
               <Route path="/debug-admin" element={<AdminPanel />} />
               <Route path="/dashboard" element={<PrivateRoute component={Dashboard} isAdminRoute={false} />} />
               <Route path="/profile" element={<PrivateRoute component={Profile} />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={<PrivateRoute component={Settings} />} />
+              <Route path="/artworks/:userId" element={<PrivateRoute component={Artworks} />} />
               <Route path="/artworks" element={<PrivateRoute component={Artworks} />} />
               <Route path="/artwork/:id" element={<PrivateRoute component={ArtworkDetail} />} />
               <Route path="/add-artwork" element={<PrivateRoute component={AddArtwork} />} />
