@@ -4,7 +4,13 @@ import { Link } from 'react-router-dom';
 function ArtworkCard({ artwork, showDetails = true }) {
   return (
     <div className="card">
-      <img src={artwork.image_url || '/placeholder.jpg'} alt={artwork.title || 'Featured Artwork'} />
+      <Link to={`/artworks/${artwork.artwork_id}`}>
+        <img
+          src={artwork.image_url || '/placeholder.jpg'}
+          alt={artwork.title || 'Featured Artwork'}
+          className="artwork-image"
+        />
+      </Link>
       {showDetails && (
         <div>
           <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>{artwork.title}</h3>

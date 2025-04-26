@@ -19,6 +19,15 @@
   .category-buttons {
     grid-template-columns: repeat(4, 1fr); /* 4 columns for tablet */
   }
+  .action-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+  }
+  .action-buttons .button {
+    width: auto;
+    min-width: 200px;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -31,5 +40,29 @@
   }
   .category-buttons {
     grid-template-columns: repeat(4, 1fr); /* 4 columns for desktop */
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 1rem;
+    max-width: 90%;
+  }
+}
+
+/* Hide auth-buttons on screens smaller than 768px (e.g., mobile) */
+@media (max-width: 767px) {
+  .auth-buttons {
+    display: none;
+  }
+}
+
+/* Ensure menu-icon is visible and positioned on mobile */
+@media (max-width: 767px) {
+  .menu-icon {
+    display: block;
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
   }
 }

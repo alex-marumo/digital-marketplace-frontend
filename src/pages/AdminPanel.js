@@ -1,9 +1,10 @@
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import styles from '../styles/AdminPanel.module.css';
 
 function AdminPanel() {
-  const { authenticated, user } = useAuth();
+  const { authenticated, user, token } = useAuth();
   const [requests, setRequests] = useState([]);
   const [error, setError] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -11,40 +12,43 @@ function AdminPanel() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [docError, setDocError] = useState(null);
-  const [docType, setDocType] = useState('image');
   const [signedUrl, setSignedUrl] = useState(null);
 
-  console.log('AdminPanel mounted:', { authenticated, role: user?.role, status: user?.status, user });
+  console.log('🔐 AdminPanel loaded:', {
+    authenticated,
+    user,
+    token: token ? '✅ present' : '❌ missing',
+    role: user?.role
+  });
 
   const fetchRequests = useCallback(async () => {
-    if (!user || !authenticated || user?.role !== 'admin') {
+    if (!token || !user || !authenticated || user?.role !== 'admin') {
       setError('Unauthorized: Admin access required.');
-      console.log('Not admin, skipping fetch:', { authenticated, role: user?.role });
+      console.warn('❌ Fetch blocked: Not admin or missing token.');
       return;
     }
+
     try {
-      const token = localStorage.getItem('accessToken');
-      console.log('Fetching requests with token:', token?.slice(0, 20) + '...');
-      const response = await axios.get('http://localhost:3001/api/admin/artist-requests/pending', {
+      console.log('📡 Fetching artist requests...');
+      const response = await axios.get('http://localhost:3000/api/admin/artist-requests/pending', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Fetched requests:', response.data);
       setRequests(response.data);
-      if (response.data.length === 0) {
-        setError('No pending requests found. Check backend logs.');
-      } else {
-        setError(null);
-      }
+      setError(response.data.length === 0 ? 'No pending requests found.' : null);
+      console.log('✅ Requests received:', response.data.length);
     } catch (err) {
-      setError('Failed to load requests: ' + (err.response?.data?.error || err.message));
-      console.error('Fetch error:', err);
+      if (err.response?.status === 403) {
+        setError('You do not have permission to access this resource.');
+      } else {
+        setError('Failed to load requests.');
+      }
+      console.error('❌ Fetch error:', err.message);
     }
-  }, [user, authenticated]);
+  }, [user, authenticated, token]);
 
   useEffect(() => {
-    console.log('useEffect triggered:', { authenticated, role: user?.role });
     fetchRequests();
-  }, [user, authenticated, fetchRequests]);
+  }, [fetchRequests]);
 
   const viewDocument = async (requestId, docType) => {
     setSelectedRequest(requestId);
@@ -53,56 +57,52 @@ function AdminPanel() {
     setDocError(null);
     setSignedUrl(null);
     setLoading(true);
-    const token = localStorage.getItem('accessToken');
-    
+
     try {
-      if (!token) throw new Error('No access token found');
-      
-      // Fetch signed URL
       const signedUrlResponse = await axios.get(
         `http://localhost:3000/api/admin/artist-requests/${requestId}/file/${docType}/signed-url`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const { signedUrl } = signedUrlResponse.data;
-      setSignedUrl(signedUrl);
-      
-      // For simplicity, assume it's an image
-      setDocType('image');
+      setSignedUrl(signedUrlResponse.data.signedUrl);
     } catch (err) {
-      console.error('Error fetching signed URL:', err);
-      setDocError('Failed to load document. Check backend logs.');
+      console.error('❌ Error fetching signed URL:', err.message);
+      setDocError('Failed to load document.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleReview = async (requestId, status) => {
-    if (status === 'rejected' && !rejectionReason.trim()) {
-      setError('Rejection reason is required');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('accessToken');
-      await axios.post(
-        `http://localhost:3001/api/admin/artist-requests/${requestId}/review`,
-        { status, rejection_reason: status === 'rejected' ? rejectionReason : null },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSelectedRequest(null);
-      setSelectedDocType(null);
-      setRejectionReason('');
-      setDocError(null);
-      setSignedUrl(null);
-      fetchRequests();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Review failed');
-      console.error('Review error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (status === 'rejected' && !rejectionReason.trim()) {
+    setError('Rejection reason is required.');
+    return;
+  }
+  setLoading(true);
+  try {
+    const payload = { status, rejection_reason: status === 'rejected' ? rejectionReason : null };
+    console.log('📤 Sending review:', { requestId, payload });
+    const response = await axios.post(
+      `http://localhost:3000/api/admin/artist-requests/${requestId}/review`,
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    console.log('✅ Review response:', response.data);
+    closeModal();
+    fetchRequests();
+  } catch (err) {
+    const errorMessage = err.response?.data?.details || err.response?.data?.error || 'Review failed. Check server logs.';
+    setError(errorMessage);
+    console.error('❌ Review error:', {
+      message: err.message,
+      status: err.response?.status,
+      data: err.response?.data,
+      requestId,
+      status,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const closeModal = () => {
     setSelectedRequest(null);
@@ -112,116 +112,127 @@ function AdminPanel() {
     setSignedUrl(null);
   };
 
-  console.log('Rendering AdminPanel:', { requests, error, authenticated, role: user?.role });
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (selectedRequest && selectedDocType) {
+        viewDocument(selectedRequest, selectedDocType);
+      }
+    }, 5 * 60 * 1000); // every 5 minutes
+    return () => clearInterval(timer);
+  }, [selectedRequest, selectedDocType]);
 
   return (
-    <Suspense fallback={<div>Loading admin panel...</div>}>
-      <div className="admin-panel" style={{ minHeight: '200px', backgroundColor: '#f0f0f0', border: '2px solid red' }}>
-        <h1>Admin Artist Request Review</h1>
-        <p>Debug: User role: {user?.role || 'none'}, Authenticated: {authenticated.toString()}, Status: {user?.status || 'none'}</p>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        {loading && <p>Loading...</p>}
-        {requests.length === 0 && !error && <p>No pending requests available. Check backend logs for artist_requests.</p>}
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Submitted</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((req) => (
-              <tr key={req.request_id}>
-                <td>{req.name || 'N/A'}</td>
-                <td>{req.email || 'N/A'}</td>
-                <td>{req.requested_at ? new Date(req.requested_at).toLocaleDateString() : 'N/A'}</td>
-                <td>
-                  {req.id_document_path && (
-                    <button onClick={() => viewDocument(req.request_id, 'id_document')}>
-                      View ID
-                    </button>
-                  )}
-                  {req.proof_of_work_path && (
-                    <button onClick={() => viewDocument(req.request_id, 'proof_of_work')}>
-                      View Work
-                    </button>
-                  )}
-                  {req.selfie_path && (
-                    <button onClick={() => viewDocument(req.request_id, 'selfie')}>
-                      View Selfie
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className={styles.adminPanel}>
+      <h1 className={styles.title}>Admin Artist Request Review</h1>
+      <p className={styles.debugInfo}>
+        User role: {user?.role || 'none'}, Authenticated: {authenticated.toString()}, Status: {user?.status || 'none'}
+      </p>
 
-        {selectedRequest && selectedDocType && (
-          <div className="review-modal">
-            <h2>Review {selectedDocType.replace('_', ' ')}</h2>
-            {loading && <p>Loading document...</p>}
+      {error && <p className={styles.error}>{error}</p>}
+      {loading && <p className={styles.loading}>Loading...</p>}
+
+      {requests.length === 0 && !error ? (
+        <p className={styles.error}>No pending requests available.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Submitted</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((req) => (
+                <tr key={req.request_id}>
+                  <td>{req.name || 'N/A'}</td>
+                  <td>{req.email || 'N/A'}</td>
+                  <td>{req.requested_at ? new Date(req.requested_at).toLocaleDateString() : 'N/A'}</td>
+                  <td>
+                    {req.id_document_path && (
+                      <button onClick={() => viewDocument(req.request_id, 'id_document')} className={styles.tableButton}>
+                        View ID
+                      </button>
+                    )}
+                    {req.proof_of_work_path && (
+                      <button onClick={() => viewDocument(req.request_id, 'proof_of_work')} className={styles.tableButton}>
+                        View Work
+                      </button>
+                    )}
+                    {req.selfie_path && (
+                      <button onClick={() => viewDocument(req.request_id, 'selfie')} className={styles.tableButton}>
+                        View Selfie
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedRequest && selectedDocType && (
+        <div className={styles.modal} onClick={closeModal}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 className={styles.modalTitle}>
+              Review {selectedDocType.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            </h2>
+
+            {loading && <p className={styles.loading}>Loading document...</p>}
             {docError ? (
-              <p style={{ color: 'red' }}>
-                {docError}
-              </p>
+              <p className={styles.error}>{docError}</p>
             ) : (
-              <>
-                {signedUrl && docType === 'image' && (
+              signedUrl && (
+                <>
                   <img
-                  src={signedUrl}
-                  alt="Document Preview"
-                  style={{ width: '100%', maxHeight: '400px', objectFit: 'contain' }}
-                  onError={(e) => {
-                    console.error('Image load error:', e);
-                    setDocError('Unable to load image.');
-                    }}
-                    />
-                  )
-                }
-                {signedUrl && (
-                  <p>
-                    <a
-                      href={signedUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Download {selectedDocType.replace('_', ' ')}
-                    </a>
-                  </p>
-                )}
-              </>
+                    src={signedUrl}
+                    alt={`${selectedDocType} Preview`}
+                    className={styles.modalImage}
+                    onError={() => setDocError('Unable to load image.')}
+                  />
+                  <a href={signedUrl} target="_blank" rel="noopener noreferrer" className={styles.modalLink}>
+                    Download {selectedDocType.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </a>
+                </>
+              )
             )}
+
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Enter rejection reason (required if rejecting)"
-              style={{ width: '100%', height: '100px', margin: '10px 0' }}
+              className={styles.modalTextarea}
             />
-            <button
-              onClick={() => handleReview(selectedRequest, 'approved')}
-              disabled={loading}
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => handleReview(selectedRequest, 'rejected')}
-              disabled={loading || !rejectionReason.trim()}
-            >
-              Reject
-            </button>
-            <button
-              onClick={closeModal}
-              disabled={loading}
-            >
-              Close
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleReview(selectedRequest, 'approved')}
+                className={`${styles.modalButton} ${styles.modalButtonApprove}`}
+                disabled={loading}
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => handleReview(selectedRequest, 'rejected')}
+                className={`${styles.modalButton} ${styles.modalButtonReject}`}
+                disabled={loading || !rejectionReason.trim()}
+              >
+                Reject
+              </button>
+              <button
+                onClick={closeModal}
+                className={`${styles.modalButton} ${styles.modalButtonClose}`}
+                disabled={loading}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-    </Suspense>
+        </div>
+      )}
+    </div>
   );
 }
 

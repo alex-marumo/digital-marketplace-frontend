@@ -3,6 +3,7 @@
   max-width: 375px;
   margin: 0 auto;
   padding: var(--space-xl);
+  @apply max-w-7xl;
 }
 
 /* Header */
@@ -166,4 +167,9 @@
 
 main {
   flex: 1; /* Makes the main content grow to fill available space, pushing the footer down */
+}
+
+.settings-header {
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, var(--color-teal-light) 0%, var(--color-orange-light) 100%);
 }

@@ -36,3 +36,17 @@ h3 {
   color: var(--color-subtle);
   margin-bottom: var(--space-sm);
 }
+
+.text-muted {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.modal-content h3 {
+  font-size: 1.25rem; /* Match Settings.js if needed */
+}
+
+.form-input {
+  font-size: 1rem; /* Ensure consistency */
+}
