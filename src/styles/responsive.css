@@ -66,3 +66,23 @@
     left: 1rem;
   }
 }
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .header-title {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .menu-icon, .auth-buttons {
+    width: 40px; /* Consistent sizing */
+    min-width: 40px;
+  }
+
+  .header-logo {
+    height: 24px;
+  }
+}

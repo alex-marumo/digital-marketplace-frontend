@@ -19,11 +19,15 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  height: 56px;
 }
 
 .menu-icon {
-  flex: 1;
+  flex: 0 0 auto;
   width: 40px;
+  min-width: 40px; /* Prevent collapse */
+  display: flex;
+  align-items: center;
 }
 
 .menu-link {
@@ -33,16 +37,26 @@
 }
 
 .hamburger-icon {
+  flex: 0 0 auto;
   font-size: 20px;
 }
 
-.header-title {
-  flex: 0 0 auto;
+.header-title, .header-logo {
+  flex: 0 1 auto; /* Don't grow too much */
+  max-width: 150px; /* Keep it from getting too wide */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: center;
-  font-size: 18px;
+  font-size: clamp(12px, 4vw, 14px);
   font-weight: 600;
   color: var(--color-white);
-  text-decoration: none; /* For Link component */
+  text-decoration: none;
+  padding: 4px 8px; /* Tighter click area */
+  margin: 0 auto; /* Center it horizontally */
+  display: inline-block;
+  transition: color 0.2s ease;
+  
 }
 
 .auth-buttons {
@@ -62,6 +76,10 @@
 
 .header a:hover {
   color: var(--color-orange); /* Vibrant orange on hover */
+}
+
+.header-title:hover {
+  color: var(--color-orange); /* Vibrant orange hover */
 }
 
 .header-link {
