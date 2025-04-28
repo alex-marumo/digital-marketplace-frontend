@@ -3,7 +3,6 @@
   max-width: 375px;
   margin: 0 auto;
   padding: var(--space-xl);
-  @apply max-w-7xl;
 }
 
 /* Header */
@@ -20,6 +19,7 @@
   top: 0;
   z-index: 1000;
   height: 56px;
+  position: relative; /* For centering */
 }
 
 .menu-icon {
@@ -28,6 +28,7 @@
   min-width: 40px; /* Prevent collapse */
   display: flex;
   align-items: center;
+  margin-right: 12px; /* Increased gap from title */
 }
 
 .menu-link {
@@ -41,22 +42,55 @@
   font-size: 20px;
 }
 
-.header-title, .header-logo {
-  flex: 0 1 auto; /* Don't grow too much */
-  max-width: 150px; /* Keep it from getting too wide */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-  font-size: clamp(12px, 4vw, 14px);
+.header-title {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Reduced gap between logo and text */
+  text-decoration: none;
+  transition: color 0.2s ease;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+}
+
+.header-logo {
+  height: 24px; /* Larger for mobile */
+  width: auto;
+  max-width: 90px; /* Slightly larger */
+  display: block;
+}
+
+.header-text {
+  font-size: clamp(20px, 3.5vw, 18px); /* Larger for mobile */
   font-weight: 600;
   color: var(--color-white);
   text-decoration: none;
-  padding: 4px 8px; /* Tighter click area */
-  margin: 0 auto; /* Center it horizontally */
-  display: inline-block;
-  transition: color 0.2s ease;
-  
+  line-height: 1; /* Prevent extra vertical space */
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .header-logo {
+    height: 28px; /* Larger for tablet */
+    max-width: 80px;
+  }
+  .header-text {
+    font-size: clamp(16px, 3vw, 18px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .header-logo {
+    height: 32px; /* Larger for desktop */
+    max-width: 90px;
+  }
+  .header-text {
+    font-size: clamp(18px, 2vw, 20px);
+  }
+}
+
+.header-title:hover {
+  color: var(--color-orange); /* Vibrant orange hover */
 }
 
 .auth-buttons {
@@ -76,10 +110,6 @@
 
 .header a:hover {
   color: var(--color-orange); /* Vibrant orange on hover */
-}
-
-.header-title:hover {
-  color: var(--color-orange); /* Vibrant orange hover */
 }
 
 .header-link {
@@ -109,6 +139,12 @@
   width: 200px;
   box-shadow: var(--shadow-sm);
   z-index: 1000;
+}
+
+.menu-dropdown.active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .menu-list {

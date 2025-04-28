@@ -39,9 +39,7 @@
     transition-duration: 0.01ms !important;
   }
   
-  html {
-    scroll-behavior: initial;
-  }
+  /* scroll-behavior removed for better iOS compatibility */
 }
 
 /* Screen Reader Only */

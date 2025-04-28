@@ -71,6 +71,7 @@ function Header() {
         roleLinks = [
           ...commonLinks,
           { to: '/orders', icon: <ShoppingBag size={16} />, label: 'Orders' },
+          { to: '/messages', icon: <MessageSquare size={16} />, label: 'Messages' },
           { to: '/artworks', icon: <Search size={16} />, label: 'Search Artworks' },
           { to: '/settings', icon: <Settings size={16} />, label: 'Settings' },
         ];
@@ -125,7 +126,8 @@ function Header() {
       </div>
 
       <Link to="/" className="header-title" onClick={(e) => console.log('ARTISTIC title clicked:', { path: location.pathname, target: e.target })}>
-        <img src="/logo.png" alt="ARTISTIC" className="header-logo" />
+        <img src="/assets/logo.png" alt="ARTISTIC" className="header-logo" />
+        <span className="header-text">artistic</span>
       </Link>
 
       <div className="auth-buttons">
