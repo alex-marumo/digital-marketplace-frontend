@@ -26,6 +26,10 @@ function PrivateRoute({ component: Component, isAdminRoute = false, ...rest }) {
   console.log('PrivateRoute props:', { isAdminRoute, path: rest.path, authenticated, role: user?.role, status: user?.status, user });
 
   useEffect(() => {
+    if (authenticated === null) {
+      console.log('Auth state loading, waiting...');
+      return;
+    }
     if (user?.role === 'admin' && isAdminRoute) {
       console.log('Admin user, admin route, allowing render:', { path: rest.path, isAdminRoute });
       return;
@@ -41,15 +45,18 @@ function PrivateRoute({ component: Component, isAdminRoute = false, ...rest }) {
     }
   }, [authenticated, user, isAdminRoute, navigate, rest.path]);
 
+  if (authenticated === null) {
+    return <div>Loading...</div>; // Or a spinner component
+  }
   if (user?.role === 'admin' && isAdminRoute) {
     console.log('Rendering admin component:', { component: Component.name });
     return <Component />;
   }
   if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
-    return <div>Redirecting to dashboard...</div>;
+    return <Navigate to="/dashboard" replace />;
   }
   if (!isAdminRoute && !authenticated) {
-    return <div>Redirecting to login...</div>;
+    return <Navigate to="/login-register" replace />;
   }
 
   return <Component />;

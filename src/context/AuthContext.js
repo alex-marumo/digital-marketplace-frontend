@@ -4,7 +4,7 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(null); // null = loading
   const [accessToken, setAccessToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [user, setUser] = useState(null);
@@ -31,17 +31,26 @@ export function AuthProvider({ children }) {
   );
 
   useEffect(() => {
-    const storedAccessToken = localStorage.getItem('accessToken');
-    const storedRefreshToken = localStorage.getItem('refreshToken');
+    const initializeAuth = async () => {
+      const storedAccessToken = localStorage.getItem('accessToken');
+      const storedRefreshToken = localStorage.getItem('refreshToken');
 
-    if (storedAccessToken && storedRefreshToken) {
-      setAccessToken(storedAccessToken);
-      setRefreshToken(storedRefreshToken);
-      fetchUserData(storedAccessToken);
-    } else {
-      setAuthenticated(false);
-      setUser(null);
-    }
+      if (storedAccessToken && storedRefreshToken) {
+        try {
+          setAccessToken(storedAccessToken);
+          setRefreshToken(storedRefreshToken);
+          await fetchUserData(storedAccessToken);
+        } catch (error) {
+          console.error('Auth initialization failed:', error.message);
+          logout();
+        }
+      } else {
+        setAuthenticated(false);
+        setUser(null);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const fetchUserData = async (token) => {
@@ -51,7 +60,7 @@ export function AuthProvider({ children }) {
       setAuthenticated(response.data.is_verified);
     } catch (error) {
       console.error('Failed to fetch user data:', error.message);
-      logout();
+      throw error;
     }
   };
 

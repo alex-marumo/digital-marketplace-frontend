@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 function LoginRegister() {
-  const { login, register } = useAuth();
+  const { login, register, authenticated, token } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +19,18 @@ function LoginRegister() {
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Redirect authenticated users
+  useEffect(() => {
+    if (authenticated === null) {
+      console.log('Auth state loading, waiting...');
+      return;
+    }
+    if (authenticated && token) {
+      console.log('User already authenticated, checking state...');
+      checkUserState(token);
+    }
+  }, [authenticated, token]);
 
   // Debug isLogin state
   useEffect(() => {

@@ -34,6 +34,10 @@ function Header() {
     console.log('Menu open:', !menuOpen);
   };
 
+  const handleTitleClick = (e) => {
+    console.log('ARTISTIC title clicked:', { path: location.pathname, target: e.target });
+  };
+
   return (
     <header className="header">
       <div className="menu-icon">
@@ -41,7 +45,9 @@ function Header() {
           <Menu className="hamburger-icon" />
         </button>
       </div>
-      <Link to="/" className="header-title">ARTISTIC</Link>
+      <Link to="/" className="header-title" onClick={handleTitleClick}>
+        ARTISTIC
+      </Link>
       <div className="auth-buttons">
         {authenticated && user?.is_verified ? (
           <>
