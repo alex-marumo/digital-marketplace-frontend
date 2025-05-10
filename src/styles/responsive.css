@@ -86,3 +86,64 @@
     height: 24px;
   }
 }
+
+@media (max-width: 767px) {
+  .messages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .thread-list {
+    margin-bottom: 1rem;
+  }
+
+  .message-card.sent,
+  .message-card.received {
+    margin-left: 10%;
+    margin-right: 10%;
+  }
+
+  .message-list {
+    max-height: 300px;
+  }
+
+  .messages-container {
+    padding: 0 0.5rem;
+  }
+
+  .search-bar {
+    flex-direction: column;
+  }
+
+  .search-input,
+  .search-button {
+    width: 100%;
+  }
+
+  .artwork-list {
+    grid-template-columns: 1fr;
+  }
+
+  .artwork-details {
+    text-align: center;
+  }
+
+  .message-artist {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .messages-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .message-card.sent,
+  .message-card.received {
+    margin-left: 15%;
+    margin-right: 15%;
+  }
+
+  .artwork-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -108,7 +108,7 @@ function Artworks() {
       <div className="artwork-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {artworks.length > 0 ? (
           artworks.map((artwork) => (
-            <ArtworkCard key={artwork.artwork_id} artwork={artwork} />
+            <ArtworkCard key={artwork.artwork_id} artwork={artwork} userRole={user.role} />
           ))
         ) : (
           !loading && <p className="text-center text-gray-500 col-span-full">No artworks found.</p>
