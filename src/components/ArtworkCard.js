@@ -58,9 +58,11 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
             <p style={{ color: '#666' }}>{formatter.format(artwork.price)}</p>
           )}
           <p style={{ fontSize: '14px', color: '#888' }}>{artwork.artist || artwork.artist_name}</p>
-          <Link to={`/artworks/${artwork.artwork_id}`} className="text-blue">
-            View Details
-          </Link>
+          {(userRole === 'buyer' || userRole === 'artist') && (
+            <Link to={`/artworks/${artwork.artwork_id}`} className="text-blue">
+              View Details
+            </Link>
+          )}
           {userRole === 'buyer' && (
             <button className="button message-artist" onClick={startThread}>
               Message Artist

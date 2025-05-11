@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as BrowserRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -66,7 +66,7 @@ function App() {
   console.log('App rendering, mounting routes');
   return (
     <AuthProvider>
-      <Router>
+      <BrowserRouter>
         <div className="app-container">
           <Header />
           <main>
@@ -97,7 +97,7 @@ function App() {
           </main>
           <Footer />
         </div>
-      </Router>
+      </BrowserRouter>
     </AuthProvider>
   );
 }
