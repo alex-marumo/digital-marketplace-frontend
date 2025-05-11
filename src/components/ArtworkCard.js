@@ -25,6 +25,12 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
     }
   };
 
+  // Define the formatter for BWP
+  const formatter = new Intl.NumberFormat('en-BW', {
+    style: 'currency',
+    currency: 'BWP',
+  });
+
   return (
     <div className="card">
       <Link to={`/artworks/${artwork.artwork_id}`}>
@@ -37,7 +43,9 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
       {showDetails && (
         <div className="artwork-details">
           <h3 style={{ fontSize: '18px', fontWeight: 'bold' }}>{artwork.title}</h3>
-          {artwork.price && <p style={{ color: '#666' }}>${artwork.price}</p>}
+          {artwork.price && (
+            <p style={{ color: '#666' }}>{formatter.format(artwork.price)}</p>
+          )}
           <p style={{ fontSize: '14px', color: '#888' }}>{artwork.artist || artwork.artist_name}</p>
           <Link to={`/artworks/${artwork.artwork_id}`} className="text-blue">
             View Details
