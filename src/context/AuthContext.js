@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [authenticated, setAuthenticated] = useState(null); // null = loading
+  const [authenticated, setAuthenticated] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [user, setUser] = useState(null);
@@ -39,7 +40,7 @@ export function AuthProvider({ children }) {
         try {
           setAccessToken(storedAccessToken);
           setRefreshToken(storedRefreshToken);
-          await fetchUserData(storedAccessToken);
+          await parseTokenAndFetchUser(storedAccessToken);
         } catch (error) {
           console.error('Auth initialization failed:', error.message);
           logout();
@@ -53,13 +54,22 @@ export function AuthProvider({ children }) {
     initializeAuth();
   }, []);
 
-  const fetchUserData = async (token) => {
+  const parseTokenAndFetchUser = async (token) => {
     try {
-      const response = await api.get(`/api/users/me`);
-      setUser(response.data);
-      setAuthenticated(response.data.is_verified);
+      const decoded = jwtDecode(token);
+      console.log('Decoded Keycloak token:', decoded);
+      const keycloakId = decoded.sub;
+      if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
+      const roles = decoded.realm_access?.roles || [];
+      const role = roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
+      if (!role) throw new Error('No valid role (artist or buyer) found in token');
+
+      const response = await api.get('/api/users/me');
+      const userData = response.data;
+      setUser({ ...userData, keycloak_id: keycloakId, role: role });
+      setAuthenticated(userData.is_verified || true);
     } catch (error) {
-      console.error('Failed to fetch user data:', error.message);
+      console.error('Failed to parse token or fetch user data:', error.message);
       throw error;
     }
   };
@@ -78,8 +88,6 @@ export function AuthProvider({ children }) {
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
 
-      console.log('Keycloak Response:', response.data);
-
       if (response.data && response.data.access_token) {
         const token = response.data.access_token;
         const refreshToken = response.data.refresh_token;
@@ -90,15 +98,13 @@ export function AuthProvider({ children }) {
         setAccessToken(token);
         setRefreshToken(refreshToken);
 
-        await fetchUserData(token);
+        await parseTokenAndFetchUser(token);
 
         return { token, refreshToken };
       } else {
-        console.error('No access_token in Keycloak response');
         throw new Error('No access token found in Keycloak response');
       }
     } catch (error) {
-      console.error('Login error:', error.message);
       throw new Error('Login failed—check your credentials or verify your email');
     }
   };

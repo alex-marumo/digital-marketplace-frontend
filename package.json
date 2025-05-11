@@ -16,6 +16,7 @@
     "express-session": "^1.18.1",
     "face-api.js": "^0.22.2",
     "http-proxy-middleware": "^3.0.5",
+    "jwt-decode": "^4.0.0",
     "keycloak-connect": "^26.1.1",
     "keycloak-js": "^26.1.4",
     "lucide-react": "^0.501.0",

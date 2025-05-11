@@ -959,3 +959,62 @@
 .message-artist:hover {
   background: #e55a00;
 }
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 0.8rem 1rem;
+  border-radius: 1rem;
+  position: relative;
+  display: inline-block;
+}
+
+.sent {
+  background-color: #d1f5d3;
+  align-self: flex-end;
+  text-align: right;
+  border-top-right-radius: 0;
+}
+
+.received {
+  background-color: #f1f1f1;
+  align-self: flex-start;
+  text-align: left;
+  border-top-left-radius: 0;
+}
+
+.message-timestamp {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  margin-top: 0.25rem;
+}
+
+.message-form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.message-input {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+}
+
+.send-button {
+  padding: 0.75rem 1rem;
+  background-color: #111;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
