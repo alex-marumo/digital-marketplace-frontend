@@ -5,6 +5,7 @@ import axios from 'axios';
 import ArtworkCard from '../components/ArtworkCard';
 import RolePromptModal from '../components/RolePromptModal';
 import { Sparkles, UserCircle2, Brush, ShoppingCart, Clock, ImagePlus } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 function Dashboard() {
   const { authenticated, user, logout } = useAuth();
@@ -12,10 +13,15 @@ function Dashboard() {
   const [artworks, setArtworks] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [showRolePrompt, setShowRolePrompt] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('Dashboard mounted:', { authenticated, role: user?.role, status: user?.status });
+    console.log('Dashboard mounted:', {
+      authenticated,
+      role: user?.role,
+      keycloak_id: user?.keycloak_id,
+      status: user?.status
+    });
     const fetchDashboardData = async () => {
       if (!authenticated) return navigate('/login-register');
       try {
@@ -26,16 +32,19 @@ function Dashboard() {
         if (!user?.role) return setShowRolePrompt(true);
         if (user.role === 'admin') return navigate('/admin');
 
-        const { data } = await axios.get('http://localhost:3001/api/artworks', {
+        const { data } = await axios.get(`${API_BASE_URL}/api/artworks`, {
           headers: { Authorization: `Bearer ${token}` },
+          params: user.role === 'artist' ? { artist: user.keycloak_id } : {},
         });
+        console.log('Fetched artworks:', data.map(a => ({
+          artwork_id: a.artwork_id,
+          title: a.title,
+          image_url: a.image_url,
+          artist_id: a.artist_id
+        })));
 
-        if (user.role === 'artist') {
-          const artistArtworks = data.filter(a => a.artist_id === user.keycloak_id);
-          setArtworks(artistArtworks);
-        } else {
-          setArtworks(data);
-          // Fetch recently viewed
+        setArtworks(data);
+        if (user.role !== 'artist') {
           const viewedIds = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
           const viewedArtworks = data.filter(a => viewedIds.includes(a.artwork_id.toString()));
           setRecentlyViewed(viewedArtworks);
@@ -56,7 +65,7 @@ function Dashboard() {
       const token = localStorage.getItem('accessToken');
       if (role === 'artist') return navigate('/request-artist');
       setShowRolePrompt(false);
-      const { data } = await axios.get('http://localhost:3001/api/artworks', {
+      const { data } = await axios.get(`${API_BASE_URL}/api/artworks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setArtworks(data);
@@ -102,7 +111,7 @@ function Dashboard() {
                 {artworks.length > 0 ? (
                   <div className="artwork-list">
                     {artworks.map((a) => (
-                      <ArtworkCard key={a.artwork_id} artwork={a} />
+                      <ArtworkCard key={a.artwork_id} artwork={a} userRole={user?.role} />
                     ))}
                   </div>
                 ) : (
@@ -122,7 +131,7 @@ function Dashboard() {
                 {artworks.length > 0 ? (
                   <div className="artwork-list">
                     {artworks.map((a) => (
-                      <ArtworkCard key={a.artwork_id} artwork={a} />
+                      <ArtworkCard key={a.artwork_id} artwork={a} userRole={user?.role} />
                     ))}
                   </div>
                 ) : (
@@ -143,7 +152,7 @@ function Dashboard() {
                 {recentlyViewed.length > 0 ? (
                   <div className="artwork-list">
                     {recentlyViewed.map((a) => (
-                      <ArtworkCard key={a.artwork_id} artwork={a} />
+                      <ArtworkCard key={a.artwork_id} artwork={a} userRole={user?.role} />
                     ))}
                   </div>
                 ) : (

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
 function ArtworkCard({ artwork, showDetails = true, userRole }) {
   const { token, user } = useAuth();
@@ -14,7 +15,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
     }
     try {
       const res = await axios.post(
-        '/api/threads',
+        `${API_BASE_URL}/api/threads`,
         { artworkId: artwork.artwork_id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -25,19 +26,29 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
     }
   };
 
-  // Define the formatter for BWP
   const formatter = new Intl.NumberFormat('en-BW', {
     style: 'currency',
     currency: 'BWP',
+  });
+
+  console.log('ArtworkCard props:', {
+    id: artwork.artwork_id,
+    title: artwork.title,
+    image_url: artwork.image_url,
+    artist_id: artwork.artist_id
   });
 
   return (
     <div className="card">
       <Link to={`/artworks/${artwork.artwork_id}`}>
         <img
-          src={artwork.image_url || '/placeholder.jpg'}
+          src={artwork.image_url ? `${API_BASE_URL}${artwork.image_url}` : '/placeholder.jpg'}
           alt={artwork.title || 'Featured Artwork'}
           className="artwork-image"
+          onError={(e) => {
+            e.target.src = '/placeholder.jpg';
+            console.log('Image load error:', artwork.image_url);
+          }}
         />
       </Link>
       {showDetails && (

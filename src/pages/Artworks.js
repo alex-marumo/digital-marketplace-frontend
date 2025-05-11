@@ -3,20 +3,23 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import ArtworkCard from '../components/ArtworkCard';
 import CategoryButtons from '../components/CategoryButtons';
+import { API_BASE_URL } from '../config';
 
 function Artworks() {
   const { user, token } = useAuth();
   const [artworks, setArtworks] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start false to avoid flash
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOptions, setSortOptions] = useState({ field: 'created_at', order: 'desc' });
 
   useEffect(() => {
-    // Fetch categories
-    axios.get('/api/categories', { headers: { Authorization: `Bearer ${token}` } })
+    if (!token) return;
+    axios.get(`${API_BASE_URL}/api/categories`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then(res => setCategories(res.data))
       .catch(err => {
         console.error('Fetch categories error:', err.message);
@@ -27,61 +30,66 @@ function Artworks() {
   useEffect(() => {
     if (!user || !token) {
       setError('Please log in to view artworks');
+      setArtworks([]);
       setLoading(false);
       return;
     }
+    const fetchArtworks = async () => {
+      setLoading(true);
+      setError(null);
+      const params = new URLSearchParams();
 
-    setLoading(true);
-    let url;
-    const params = new URLSearchParams();
-
-    if (user.role === 'artist' && user.keycloak_id) {
-      url = '/api/artworks';
+      if (!user || !user.role) {
+        setError('Invalid user role');
+        setArtworks([]);
+        setLoading(false);
+        return; 
+      }
+     
+      if (user.role === 'artist' && user.keycloak_id) {
       params.append('artist', user.keycloak_id);
+      }
+     
+      if (searchQuery.trim()) params.append('query', searchQuery.trim());
       if (selectedCategory) params.append('category', selectedCategory);
       params.append('sort_by', sortOptions.field);
       params.append('order', sortOptions.order);
-    } else if (user.role === 'buyer') {
-      if (searchQuery) {
-        url = '/api/search';
-        params.append('query', searchQuery);
-      } else {
-        url = '/api/artworks';
-        if (selectedCategory) params.append('category', selectedCategory);
-      }
-    } else {
-      setError('Invalid user role or missing authentication');
-      setLoading(false);
-      return;
-    }
 
-    url += params.toString() ? `?${params.toString()}` : '';
-    console.log('Fetching artworks with URL:', url);
-
-    axios.get(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => {
-        setArtworks(res.data);
+      const url = `${API_BASE_URL}/api/artworks${params.toString() ? `?${params.toString()}` : ''}`;
+      console.log('Fetching artworks with URL:', url, 'Search Query:', searchQuery);
+      try {
+        const res = await axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Fetched artworks:', res.data);
+        setArtworks(res.data || []);
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Fetch artworks error:', {
           status: err.response?.status,
           message: err.response?.data?.error,
-          details: err.response?.data?.details,
+          details: err.response?.data?.details
         });
-        setError(err.response?.data?.details || 'Failed to fetch artworks. Try again later.');
+        setError(err.response?.data?.details || 'Failed to fetch artworks.');
+        setArtworks([]);
         setLoading(false);
-      });
+      }
+    };
+    fetchArtworks();
   }, [user, token, selectedCategory, searchQuery, sortOptions]);
 
   const handleCategorySelect = (categoryId) => {
     setSelectedCategory(categoryId);
-    setSearchQuery('');
+    setSearchQuery(''); // Clear search when selecting category
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setSelectedCategory(null);
+    setSearchQuery(searchQuery.trim()); // Trigger useEffect
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value); // Update searchQuery on input
   };
 
   const handleSortFieldChange = (e) => {
@@ -98,38 +106,42 @@ function Artworks() {
         {user?.role === 'artist' ? 'My Artworks' : 'Browse All Artworks'}
       </h1>
 
-      {/* Buyer’s Search Bar */}
-      {user?.role === 'buyer' && (
-        <div className="search-bar mb-6">
+      {/* Unified Search & Sort Section */}
+      <div className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center">
+        <form onSubmit={handleSearch} className="search-bar flex gap-2">
           <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search artworks..."
-            className="search-input"
-          />
-          <button onClick={handleSearch} className="search-button">
-            Search
-          </button>
+          type="text"
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search artworks..."
+          className="search-input border border-gray-300 rounded px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-teal-600"
+        />
+        <button type="submit" className="search-button bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
+          Search
+        </button>
+        </form>
+        
+      <div className="sort-options flex gap-2">
+        <select
+        value={sortOptions.field}
+        onChange={handleSortFieldChange}
+        className="sort-select border border-gray-300 rounded px-2 py-1"
+      >
+        <option value="created_at">Date</option>
+        <option value="price">Price</option>
+        <option value="category_id">Category</option>
+        </select>
+        <select
+        value={sortOptions.order}
+        onChange={handleSortOrderChange}
+        className="sort-select border border-gray-300 rounded px-2 py-1"
+      >
+        <option value="asc">Asc</option>
+        <option value="desc">Desc</option>
+        </select>
         </div>
-      )}
+      </div>
 
-      {/* Artist’s Sort Options */}
-      {user?.role === 'artist' && (
-        <div className="sort-options mb-6 flex justify-center gap-4">
-          <select value={sortOptions.field} onChange={handleSortFieldChange} className="sort-select">
-            <option value="created_at">Date</option>
-            <option value="price">Price</option>
-            <option value="category_id">Category</option>
-          </select>
-          <select value={sortOptions.order} onChange={handleSortOrderChange} className="sort-select">
-            <option value="asc">Asc</option>
-            <option value="desc">Desc</option>
-          </select>
-        </div>
-      )}
-
-      {/* Category Buttons */}
       <div className="sticky top-0 bg-white z-10 py-4">
         <CategoryButtons
           categories={categories.map(cat => ({ id: cat.category_id, name: cat.name }))}
@@ -137,18 +149,18 @@ function Artworks() {
         />
       </div>
 
-      {/* Loading/Error States */}
       {loading && <p className="text-center text-gray-500">Loading artworks...</p>}
       {error && <p className="text-center text-red-500">{error}</p>}
 
-      {/* Artwork List */}
       <div className="artwork-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {artworks.length > 0 ? (
           artworks.map((artwork) => (
             <ArtworkCard key={artwork.artwork_id} artwork={artwork} userRole={user?.role} />
           ))
         ) : (
-          !loading && <p className="text-center text-gray-500 col-span-full">No artworks found.</p>
+          !loading && <p className="text-center text-gray-500 col-span-full">
+            {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks found.'}
+          </p>
         )}
       </div>
     </div>

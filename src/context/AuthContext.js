@@ -61,8 +61,8 @@ export function AuthProvider({ children }) {
       const keycloakId = decoded.sub;
       if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
       const roles = decoded.realm_access?.roles || [];
-      const role = roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
-      if (!role) throw new Error('No valid role (artist or buyer) found in token');
+      const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
+      if (!role) throw new Error('No valid role (admin, artist, or buyer) found in token');
 
       const response = await api.get('/api/users/me');
       const userData = response.data;
