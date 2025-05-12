@@ -64,12 +64,11 @@ function ArtworkDetail() {
     const fetchReviews = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
-        console.log('Fetched reviews:', response.data);
         setReviews(response.data.slice(0, 3));
         if (response.data.length) {
           const total = response.data.reduce((sum, r) => sum + r.rating, 0);
           setAverageRating((total / response.data.length).toFixed(1));
-      }
+        }
       } catch (err) {
         console.error('Failed to load reviews:', err.response?.data || err.message);
       }
@@ -168,6 +167,18 @@ function ArtworkDetail() {
       <p style={{ color: '#6b7280', fontSize: '1rem', marginBottom: '2rem', textAlign: 'center', fontStyle: 'italic' }}>
         By {artwork.artist_name || 'Unknown Artist'}
       </p>
+      {user?.role === 'buyer' && (
+        <button
+          onClick={handlePurchase}
+          style={{ display: 'block', margin: '0 auto 2rem', padding: '0.75rem 2rem', backgroundColor: '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.2s' }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
+          onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
+          onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
+          onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
+        >
+          Order Now
+        </button>
+      )}
       {user?.role === 'buyer' && (
         <form
           onSubmit={handleReview}
