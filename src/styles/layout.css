@@ -3,14 +3,13 @@
   max-width: 375px;
   margin: 0 auto;
   padding: var(--space-xl);
-  @apply max-w-7xl;
 }
 
 /* Header */
 .header {
   background-color: var(--color-header-footer); /* Dark charcoal header */
   color: var(--color-white);
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -19,10 +18,17 @@
   position: sticky;
   top: 0;
   z-index: 1000;
+  height: 56px;
+  position: relative; /* For centering */
 }
 
 .menu-icon {
-  flex: 1;
+  flex: 0 0 auto;
+  width: 40px;
+  min-width: 40px; /* Prevent collapse */
+  display: flex;
+  align-items: center;
+  margin-right: 12px; /* Increased gap from title */
 }
 
 .menu-link {
@@ -32,16 +38,59 @@
 }
 
 .hamburger-icon {
+  flex: 0 0 auto;
   font-size: 20px;
 }
 
 .header-title {
-  flex: 2;
-  text-align: center;
-  font-size: 18px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Reduced gap between logo and text */
+  text-decoration: none;
+  transition: color 0.2s ease;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* Center horizontally */
+}
+
+.header-logo {
+  height: 24px; /* Larger for mobile */
+  width: auto;
+  max-width: 90px; /* Slightly larger */
+  display: block;
+}
+
+.header-text {
+  font-size: clamp(20px, 3.5vw, 18px); /* Larger for mobile */
   font-weight: 600;
   color: var(--color-white);
-  text-decoration: none; /* For Link component */
+  text-decoration: none;
+  line-height: 1; /* Prevent extra vertical space */
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .header-logo {
+    height: 28px; /* Larger for tablet */
+    max-width: 80px;
+  }
+  .header-text {
+    font-size: clamp(16px, 3vw, 18px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .header-logo {
+    height: 32px; /* Larger for desktop */
+    max-width: 90px;
+  }
+  .header-text {
+    font-size: clamp(18px, 2vw, 20px);
+  }
+}
+
+.header-title:hover {
+  color: var(--color-orange); /* Vibrant orange hover */
 }
 
 .auth-buttons {
@@ -90,6 +139,12 @@
   width: 200px;
   box-shadow: var(--shadow-sm);
   z-index: 1000;
+}
+
+.menu-dropdown.active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .menu-list {

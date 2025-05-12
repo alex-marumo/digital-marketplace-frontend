@@ -1,4 +1,3 @@
-// src/pages/LandingPage.js
 import React from 'react';
 import ArtworkCard from '../components/ArtworkCard';
 import { Link } from 'react-router-dom';
@@ -6,7 +5,6 @@ import { Paintbrush, Box, Scissors, Camera, Star, Target, PenTool, Shirt } from 
 import '../styles/styles.css';
 
 function LandingPage() {
-  // Hardcoded dummy images using your local images
   const featuredArtworks = [
     {
       artwork_id: '1',
@@ -30,10 +28,9 @@ function LandingPage() {
     },
   ];
 
-  // Categories for the "Explore by Category" section with their respective Lucide icons
   const categories = [
     { name: 'Paintings', icon: <Paintbrush /> },
-    { name: 'Ceramics', icon: <Box /> },  // Changed Cube to Box for ceramics
+    { name: 'Ceramics', icon: <Box /> },
     { name: 'Sculptures', icon: <Scissors /> },
     { name: 'Textile Art', icon: <Target /> },
     { name: 'Photography', icon: <Camera /> },
@@ -44,22 +41,21 @@ function LandingPage() {
 
   return (
     <div className="container">
-      {/* Discover Section */}
       <div className="text-center m-bottom">
         <h1>Discover Local Artists</h1>
         <p>Explore Unique Artworks From Your Community</p>
         <Link to="/artworks" className="button">Browse Artworks</Link>
       </div>
-
-      {/* Featured Artworks Section */}
       <h2>Featured Artworks</h2>
       <div className="artwork-list">
         {featuredArtworks.map(artwork => (
-          <ArtworkCard key={artwork.artwork_id} artwork={artwork} showDetails={false} />
+          <ArtworkCard
+            key={artwork.artwork_id}
+            artwork={artwork}
+            showDetails={false}
+          />
         ))}
       </div>
-
-      {/* Explore by Category Section */}
       <h2>Explore by Category</h2>
       <div className="category-buttons">
         {categories.map(category => (

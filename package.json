@@ -16,6 +16,7 @@
     "express-session": "^1.18.1",
     "face-api.js": "^0.22.2",
     "http-proxy-middleware": "^3.0.5",
+    "jwt-decode": "^4.0.0",
     "keycloak-connect": "^26.1.1",
     "keycloak-js": "^26.1.4",
     "lucide-react": "^0.501.0",
@@ -28,7 +29,7 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
-  "proxy": "http://localhost:3000",
+  "proxy": null,
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -60,6 +61,7 @@
     "parcel": "^2.14.4",
     "react-app-rewired": "^2.2.1",
     "style-loader": "^4.0.0",
+    "tailwindcss": "^4.1.6",
     "webpack": "^5.99.6",
     "webpack-cli": "^6.0.1"
   }
