@@ -29,7 +29,7 @@
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
-  "proxy": "null",
+  "proxy": null,
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -42,7 +42,6 @@
       "react-app/jest"
     ]
   },
-  
   "browserslist": {
     "production": [
       ">0.2%",
@@ -62,6 +61,7 @@
     "parcel": "^2.14.4",
     "react-app-rewired": "^2.2.1",
     "style-loader": "^4.0.0",
+    "tailwindcss": "^4.1.6",
     "webpack": "^5.99.6",
     "webpack-cli": "^6.0.1"
   }

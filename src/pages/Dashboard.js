@@ -109,10 +109,14 @@ function Dashboard() {
                   </Link>
                 </div>
                 {artworks.length > 0 ? (
-                  <div className="artwork-list">
+                  <div className="artwork-list" onClick={(e) => e.stopPropagation()}>
                     {artworks.map((a) => (
+                      a.artwork_id ? (
                       <ArtworkCard key={a.artwork_id} artwork={a} userRole={user?.role} />
-                    ))}
+                    ) : (
+                      console.warn('Skipping artwork with missing ID:', a)
+                    )
+                  ))}
                   </div>
                 ) : (
                   <p className="text-center text-muted">You haven’t added any artworks yet.</p>

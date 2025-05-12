@@ -151,16 +151,22 @@ function Artworks() {
 
       {loading && <p className="text-center text-gray-500">Loading artworks...</p>}
       {error && <p className="text-center text-red-500">{error}</p>}
-
+      
       <div className="artwork-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {artworks.length > 0 ? (
           artworks.map((artwork) => (
+            artwork.artwork_id ? (
             <ArtworkCard key={artwork.artwork_id} artwork={artwork} userRole={user?.role} />
-          ))
-        ) : (
-          !loading && <p className="text-center text-gray-500 col-span-full">
-            {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks found.'}
+          ) : (
+            console.warn('Skipping artwork with missing ID:', artwork)
+          )
+        ))
+      ) : (
+        !loading && (
+        <p className="text-center text-gray-500 col-span-full">
+          {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks found.'}
           </p>
+          )
         )}
       </div>
     </div>

@@ -100,47 +100,210 @@ function ArtworkDetail() {
     }
   };
 
-  if (loading) return <div className="container text-center">Loading...</div>;
-  if (error) return <div className="container text-center text-red-500">{error}</div>;
-  if (!artwork) return <div className="container text-center">Artwork not found</div>;
+  if (loading)
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          backgroundColor: '#f4f1de',
+          fontSize: '1.5rem',
+          color: '#2b2d42',
+          fontWeight: '600',
+        }}
+      >
+        Loading...
+      </div>
+    );
+  if (error)
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          backgroundColor: '#f4f1de',
+          fontSize: '1.5rem',
+          color: '#d00000',
+          fontWeight: '600',
+        }}
+      >
+        {error}
+      </div>
+    );
+  if (!artwork)
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          backgroundColor: '#f4f1de',
+          fontSize: '1.5rem',
+          color: '#2b2d42',
+          fontWeight: '600',
+        }}
+      >
+        Artwork not found
+      </div>
+    );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-teal-600 mb-4">{artwork.title}</h1>
+    <div
+      style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '2rem 1rem',
+        backgroundColor: '#f4f1de',
+        minHeight: '100vh',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        borderRadius: '8px',
+      }}
+    >
+      <h1
+        style={{
+          fontSize: '2.25rem',
+          fontWeight: '800',
+          color: '#ff6200',
+          marginBottom: '1.5rem',
+          textAlign: 'center',
+          textTransform: 'uppercase',
+          letterSpacing: '1.5px',
+        }}
+      >
+        {artwork.title}
+      </h1>
       <img
         src={artwork.image_url.startsWith('http') ? artwork.image_url : `${API_BASE_URL}${artwork.image_url}`}
         alt={artwork.title || 'Artwork'}
-        className="artwork-image w-full max-w-md mx-auto mb-4 rounded"
+        style={{
+          width: '100%',
+          maxWidth: '600px',
+          display: 'block',
+          margin: '0 auto 1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          objectFit: 'cover',
+          maxHeight: '400px',
+          border: '2px solid #2b2d42',
+        }}
         onError={(e) => {
           e.target.src = '/placeholder.jpg';
           console.log('Image load error:', artwork.image_url);
         }}
       />
-      <p className="text-gray-600 mb-2">{artwork.description || 'No description available'}</p>
-      <p className="text-gray-800 font-semibold mb-2">
+      <p
+        style={{
+          color: '#2b2d42',
+          fontSize: '1.125rem',
+          lineHeight: '1.6',
+          marginBottom: '1rem',
+          textAlign: 'center',
+          maxWidth: '800px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        }}
+      >
+        {artwork.description || 'No description available'}
+      </p>
+      <p
+        style={{
+          color: '#2b2d42',
+          fontSize: '1.25rem',
+          fontWeight: '700',
+          marginBottom: '1rem',
+          textAlign: 'center',
+        }}
+      >
         {new Intl.NumberFormat('en-BW', { style: 'currency', currency: 'BWP' }).format(artwork.price)}
       </p>
-      <p className="text-gray-500 mb-4">By {artwork.artist_name || 'Unknown Artist'}</p>
+      <p
+        style={{
+          color: '#6b7280',
+          fontSize: '1rem',
+          marginBottom: '2rem',
+          textAlign: 'center',
+          fontStyle: 'italic',
+        }}
+      >
+        By {artwork.artist_name || 'Unknown Artist'}
+      </p>
       {user?.role === 'buyer' && (
         <button
-          className="button bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 mb-4"
           onClick={handlePurchase}
+          style={{
+            display: 'block',
+            margin: '0 auto 1.5rem',
+            padding: '0.75rem 2rem',
+            backgroundColor: '#ff6200',
+            color: '#f4f1de',
+            fontSize: '1rem',
+            fontWeight: '600',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s, transform 0.2s',
+          }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
+          onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
+          onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
+          onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
         >
           Buy Now
         </button>
       )}
       {user?.role === 'buyer' && (
-        <form onSubmit={handleReview} className="form-group">
+        <form
+          onSubmit={handleReview}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+            maxWidth: '500px',
+            margin: '0 auto 2rem',
+          }}
+        >
           <input
             type="text"
             value={review}
             onChange={(e) => setReview(e.target.value)}
-            placeholder="Leave a review"
-            className="form-input border border-gray-300 rounded px-4 py-2 w-full max-w-md mb-2"
+            placeholder="Drop a fire review 🔥"
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              fontSize: '1rem',
+              border: '2px solid #ff6200',
+              borderRadius: '4px',
+              outline: 'none',
+              backgroundColor: '#f4f1de',
+              color: '#2b2d42',
+              transition: 'border-color 0.3s',
+            }}
+            onFocus={(e) => (e.target.style.borderColor = '#e05500')}
+            onBlur={(e) => (e.target.style.borderColor = '#ff6200')}
           />
           <button
             type="submit"
-            className="button bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700"
+            style={{
+              padding: '0.75rem 2rem',
+              backgroundColor: '#ff6200',
+              color: '#f4f1de',
+              fontSize: '1rem',
+              fontWeight: '600',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s, transform 0.2s',
+            }}
+            onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
+            onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
+            onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
+            onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
           >
             Submit Review
           </button>
@@ -148,7 +311,19 @@ function ArtworkDetail() {
       )}
       <button
         onClick={() => navigate('/artworks')}
-        className="mt-4 text-blue-600 underline hover:text-blue-800"
+        style={{
+          display: 'block',
+          margin: '0 auto',
+          fontSize: '1rem',
+          color: '#4a7289',
+          textDecoration: 'underline',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          transition: 'color 0.3s',
+        }}
+        onMouseOver={(e) => (e.target.style.color = '#355b71')}
+        onMouseOut={(e) => (e.target.style.color = '#4a7289')}
       >
         Back to Artworks
       </button>

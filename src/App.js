@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as BrowserRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -83,15 +83,16 @@ function App() {
               <Route path="/dashboard" element={<PrivateRoute component={Dashboard} isAdminRoute={false} />} />
               <Route path="/profile" element={<PrivateRoute component={Profile} />} />
               <Route path="/settings" element={<PrivateRoute component={Settings} />} />
+              <Route path="/artworks/:id" element={<PrivateRoute component={ArtworkDetail} />} />
               <Route path="/artworks/:userId" element={<PrivateRoute component={Artworks} />} />
               <Route path="/artworks" element={<PrivateRoute component={Artworks} />} />
-              <Route path="/artwork/:id" element={<PrivateRoute component={ArtworkDetail} />} />
               <Route path="/add-artwork" element={<PrivateRoute component={AddArtwork} />} />
               <Route path="/edit-artwork/:id" element={<PrivateRoute component={EditArtwork} />} />
               <Route path="/orders" element={<PrivateRoute component={Orders} />} />
               <Route path="/sales" element={<PrivateRoute component={Sales} />} />
               <Route path="/request-artist" element={<PrivateRoute component={RequestArtist} />} />
               <Route path="/messages" element={<PrivateRoute component={Messages} />} />
+              <Route path="/messages/:threadId" element={<PrivateRoute component={Messages} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

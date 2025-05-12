@@ -57,23 +57,30 @@ export function AuthProvider({ children }) {
   const parseTokenAndFetchUser = async (token) => {
     try {
       const decoded = jwtDecode(token);
-      console.log('Decoded Keycloak token:', decoded);
-      const keycloakId = decoded.sub;
-      if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
-      const roles = decoded.realm_access?.roles || [];
-      const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
-      if (!role) throw new Error('No valid role (admin, artist, or buyer) found in token');
+        console.log('Decoded Keycloak token:', decoded);
+        const keycloakId = decoded.sub;
+        if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
+        const roles = decoded.realm_access?.roles || [];
+        const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
+        if (!role) {
+          console.warn('No valid role found, defaulting to buyer');
+          setUser({ keycloak_id: keycloakId, role: 'buyer' }); // Fallback
+          setAuthenticated(true);
+          return;
+       }
 
       const response = await api.get('/api/users/me');
       const userData = response.data;
-      setUser({ ...userData, keycloak_id: keycloakId, role: role });
+      console.log('Fetched user data:', userData);
+      setUser({ ...userData, keycloak_id: keycloakId, role });
       setAuthenticated(userData.is_verified || true);
     } catch (error) {
       console.error('Failed to parse token or fetch user data:', error.message);
+      setUser(null);
+      setAuthenticated(false);
       throw error;
     }
   };
-
   const login = async (email, password) => {
     try {
       const response = await axios.post(
