@@ -15,6 +15,8 @@ function ArtworkDetail() {
   const [averageRating, setAverageRating] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('paypal');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   useEffect(() => {
     const fetchArtwork = async (retryCount = 0) => {
@@ -30,6 +32,7 @@ function ArtworkDetail() {
         return;
       }
       try {
+        console.log('[ARTWORK FETCH DEBUG] Fetching artwork:', { artworkId: id });
         const res = await axios.get(`${API_BASE_URL}/api/artworks/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -44,7 +47,13 @@ function ArtworkDetail() {
           viewed.push(id);
           localStorage.setItem('recentlyViewed', JSON.stringify(viewed.slice(-5)));
         }
+        console.log('[ARTWORK FETCH SUCCESS] Artwork loaded:', res.data);
       } catch (err) {
+        console.error('[ARTWORK FETCH ERROR]:', {
+          status: err.response?.status,
+          message: err.response?.data?.error,
+          details: err.response?.data?.details,
+        });
         if (retryCount < 2 && err.response?.status === 503) {
           setTimeout(() => fetchArtwork(retryCount + 1), 1000);
           return;
@@ -63,29 +72,70 @@ function ArtworkDetail() {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
+        console.log('[REVIEWS FETCH DEBUG] Fetching reviews for artwork:', id);
         const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
         setReviews(response.data.slice(0, 3));
         if (response.data.length) {
           const total = response.data.reduce((sum, r) => sum + r.rating, 0);
           setAverageRating((total / response.data.length).toFixed(1));
         }
+        console.log('[REVIEWS FETCH SUCCESS] Reviews loaded:', response.data.length);
       } catch (err) {
-        console.error('Failed to load reviews:', err.response?.data || err.message);
+        console.error('[REVIEWS FETCH ERROR]:', err.response?.data || err.message);
       }
     };
     fetchReviews();
   }, [id]);
 
   const handlePurchase = async () => {
-    if (!artwork) return;
+    if (!artwork) {
+      console.log('[ARTWORK PURCHASE ERROR] No artwork loaded');
+      return;
+    }
+    if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber.trim()) {
+      alert('Please enter a phone number for mobile money payments.');
+      console.log('[ARTWORK PURCHASE ERROR] Missing phone number for mobile money');
+      return;
+    }
     try {
-      const res = await axios.post(
+      console.log('[ARTWORK PURCHASE DEBUG] Creating order:', { artworkId: id, paymentMethod, phoneNumber });
+      // Step 1: Create order
+      const orderRes = await axios.post(
         `${API_BASE_URL}/api/orders`,
-        { artwork_id: id, total_amount: artwork.price },
+        { artwork_id: id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      navigate('/payment');
+      console.log('[ARTWORK PURCHASE ORDER SUCCESS] Order created:', orderRes.data);
+
+      // Step 2: Initiate payment
+      const paymentRes = await axios.post(
+        `${API_BASE_URL}/api/payments`,
+        {
+          order_id: orderRes.data.order_id,
+          amount: artwork.price,
+          payment_method: paymentMethod,
+          phone_number: phoneNumber
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('[ARTWORK PURCHASE PAYMENT SUCCESS] Payment initiated:', paymentRes.data);
+
+      if (paymentRes.data.paymentUrl) {
+        if (paymentMethod === 'paypal') {
+          console.log('[ARTWORK PURCHASE REDIRECT] Redirecting to PayPal:', paymentRes.data.paymentUrl);
+          window.location.href = paymentRes.data.paymentUrl;
+        } else {
+          console.log('[ARTWORK PURCHASE USSD] Showing USSD instructions:', paymentRes.data.paymentUrl);
+          alert(`Please follow these instructions to complete your payment: ${paymentRes.data.paymentUrl}`);
+          window.location.href = paymentRes.data.paymentUrl; // Redirect to mock payment page
+        }
+      }
     } catch (err) {
+      console.error('[ARTWORK PURCHASE ERROR]:', {
+        status: err.response?.status,
+        message: err.response?.data?.error,
+        details: err.response?.data?.details,
+      });
       alert('Failed to process purchase. Please try again.');
     }
   };
@@ -94,9 +144,11 @@ function ArtworkDetail() {
     e.preventDefault();
     if (!review.trim()) {
       alert('Review cannot be empty');
+      console.log('[REVIEW SUBMIT ERROR] Empty review');
       return;
     }
     try {
+      console.log('[REVIEW SUBMIT DEBUG] Submitting review:', { artworkId: id, rating, comment: review });
       await axios.post(
         `${API_BASE_URL}/api/reviews`,
         { artwork_id: id, rating, comment: review, user_id: user?.keycloak_id },
@@ -105,7 +157,16 @@ function ArtworkDetail() {
       setReview('');
       setRating(5);
       alert('Review submitted!');
+      console.log('[REVIEW SUBMIT SUCCESS] Review submitted');
+      // Refresh reviews
+      const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
+      setReviews(response.data.slice(0, 3));
+      if (response.data.length) {
+        const total = response.data.reduce((sum, r) => sum + r.rating, 0);
+        setAverageRating((total / response.data.length).toFixed(1));
+      }
     } catch (err) {
+      console.error('[REVIEW SUBMIT ERROR]:', err.response?.data || err.message);
       alert('Failed to submit review. Please try again.');
     }
   };
@@ -168,16 +229,42 @@ function ArtworkDetail() {
         By {artwork.artist_name || 'Unknown Artist'}
       </p>
       {user?.role === 'buyer' && (
-        <button
-          onClick={handlePurchase}
-          style={{ display: 'block', margin: '0 auto 2rem', padding: '0.75rem 2rem', backgroundColor: '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.2s' }}
-          onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
-          onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
-          onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
-          onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
-        >
-          Order Now
-        </button>
+        <div style={{ maxWidth: '500px', margin: '0 auto 2rem', textAlign: 'center' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', color: '#2b2d42', fontWeight: '600' }}>
+            Payment Method:
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', fontSize: '1rem', border: '2px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
+            >
+              <option value="paypal">PayPal</option>
+              <option value="orange_money">Orange Money</option>
+              <option value="myzaka">MyZaka</option>
+            </select>
+          </label>
+          {(paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && (
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#2b2d42', fontWeight: '600' }}>
+              Phone Number:
+              <input
+                type="text"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter phone number (e.g., +26712345678)"
+                style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', fontSize: '1rem', border: '2px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
+              />
+            </label>
+          )}
+          <button
+            onClick={handlePurchase}
+            style={{ display: 'block', margin: '1rem auto 0', padding: '0.75rem 2rem', backgroundColor: '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.2s' }}
+            onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
+            onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
+            onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
+            onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
+          >
+            Order Now
+          </button>
+        </div>
       )}
       {user?.role === 'buyer' && (
         <form
