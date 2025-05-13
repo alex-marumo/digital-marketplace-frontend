@@ -35,7 +35,7 @@ function Settings() {
     setLoading((prev) => ({ ...prev, profile: true }));
     setMessage(null);
     try {
-      await axios.put('/api/users/me', profile, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put('http://localhost:3000/api/users/me', profile, { headers: { Authorization: `Bearer ${token}` } });
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update profile.' });

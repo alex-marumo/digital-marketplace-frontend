@@ -77,9 +77,12 @@ function Orders() {
       if (paymentMethod === 'paypal') {
         window.location.href = res.data.paymentUrl;
       } else {
-        alert(res.data.paymentUrl); // Show USSD instructions
-        window.location.href = res.data.paymentUrl; // Redirect to mock payment page
+        alert(`Please complete payment via ${paymentMethod === 'orange_money' ? '*145#' : '*167#'}. URL: ${res.data.paymentUrl}`);
+        window.location.href = res.data.paymentUrl;
       }
+    } else {
+      console.error('[ORDERS PAY NOW ERROR] No payment URL returned:', res.data);
+      alert('Payment initiated, but no redirect URL provided. Please check your orders or contact support.');
     }
   } catch (err) {
     console.error('[ORDERS PAY NOW ERROR]:', err.response?.data || err.message);

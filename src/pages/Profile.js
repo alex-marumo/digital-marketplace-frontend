@@ -32,7 +32,7 @@ function Profile() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await axios.put('/api/profile', {
+      const response = await axios.put('/api/users/me', {
         name: profile.name,
         email: profile.email
       }, {
