@@ -5,7 +5,7 @@ import axios from 'axios';
 import { UserCircle2, Brush, ShoppingCart, X, Pencil } from 'lucide-react';
 
 function Profile() {
-  const { user, token } = useAuth();
+  const { user, token, refreshAccessToken, setUser } = useAuth();
   const [profile, setProfile] = useState({ name: '', email: '', picture: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -14,18 +14,68 @@ function Profile() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    setProfile({
-      name: user?.name || '',
-      email: user?.email || '',
-      picture: user?.picture || '' // Assume picture is a full URL from AuthContext
-    });
-    setPreview(user?.picture || null);
-    return () => {
-      if (preview && preview.startsWith('blob:')) {
-        URL.revokeObjectURL(preview); // Clean up blob URLs
+    const fetchUser = async (currentToken) => {
+      if (!currentToken) {
+        console.warn('No token, cannot fetch profile');
+        setMessage({ type: 'error', text: 'Please log in to view your profile.' });
+        return;
+      }
+      try {
+        console.log('Fetching user from /api/users/me, token:', currentToken.slice(0, 20) + '...');
+        const response = await axios.get('http://localhost:3000/api/users/me', {
+          headers: { Authorization: `Bearer ${currentToken}` }
+        });
+        console.log('Fetched user:', response.data);
+        const pictureUrl = response.data.profile_photo && response.data.keycloak_id
+          ? `http://localhost:3000/api/users/${response.data.keycloak_id}/photo`
+          : null;
+        console.log('Constructed pictureUrl:', pictureUrl);
+        setProfile({
+          name: response.data.name || '',
+          email: response.data.email || '',
+          picture: pictureUrl || ''
+        });
+        setPreview(pictureUrl);
+        console.log('Set preview:', pictureUrl);
+      } catch (err) {
+        console.error('Fetch user error:', err.response?.status, err.response?.data || err.message);
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          try {
+            console.log('Retrying with refreshed token');
+            const newToken = await refreshAccessToken();
+            await fetchUser(newToken);
+          } catch (refreshErr) {
+            console.error('Refresh token failed:', refreshErr.message);
+            setMessage({ type: 'error', text: 'Session expired. Please log in again.' });
+          }
+        } else {
+          setMessage({ type: 'error', text: 'Failed to load profile data.' });
+        }
       }
     };
-  }, [user, preview]);
+
+    // Use user.picture from AuthContext if available, else fetch
+    if (user?.picture) {
+      console.log('Using user.picture from AuthContext:', user.picture);
+      setProfile({
+        name: user.name || '',
+        email: user.email || '',
+        picture: user.picture
+      });
+      setPreview(user.picture);
+    } else if (token) {
+      fetchUser(token);
+    } else {
+      console.warn('No token or user.picture, cannot fetch profile');
+      setMessage({ type: 'error', text: 'Please log in to view your profile.' });
+    }
+
+    return () => {
+      if (preview && preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [token, user, refreshAccessToken]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -63,6 +113,7 @@ function Profile() {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    console.log('Selected file:', file);
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
         setMessage({ type: 'error', text: 'Image size must be under 2MB.' });
@@ -81,6 +132,11 @@ function Profile() {
   };
 
   const handleImageUpload = async () => {
+    console.log('Upload triggered, picture:', profile.picture, 'type:', typeof profile.picture, 'token:', token ? token.slice(0, 20) + '...' : 'missing');
+    if (!token) {
+      setMessage({ type: 'error', text: 'Please log in to upload a photo.' });
+      return;
+    }
     if (!profile.picture || typeof profile.picture === 'string') {
       setMessage({ type: 'error', text: 'No new image selected.' });
       return;
@@ -88,20 +144,58 @@ function Profile() {
     setLoading(true);
     setMessage(null);
     const formData = new FormData();
-    formData.append('profilePhoto', profile.picture); // Match backend field name
+    formData.append('profilePhoto', profile.picture);
     try {
-      const response = await axios.post('/api/users/me/photo', formData, {
+      const response = await axios.post('http://localhost:3000/api/users/me/photo', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });
-      setProfile({ ...profile, picture: response.data.pictureUrl });
-      setPreview(response.data.pictureUrl);
+      console.log('Upload response:', response.data);
+      const newPictureUrl = response.data.pictureUrl || (user?.keycloak_id
+        ? `http://localhost:3000/api/users/${user.keycloak_id}/photo`
+        : null);
+      console.log('Set new pictureUrl:', newPictureUrl);
+      if (!newPictureUrl) {
+        throw new Error('No valid picture URL after upload');
+      }
+      setProfile({ ...profile, picture: newPictureUrl });
+      setPreview(newPictureUrl);
       setShowPreview(false);
       setMessage({ type: 'success', text: 'Profile picture updated!' });
+      // Update AuthContext user
+      setUser({ ...user, picture: newPictureUrl });
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to upload image.' });
+      console.error('Upload error:', err.response?.status, err.response?.data || err.message);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        try {
+          console.log('Retrying upload with refreshed token');
+          const newToken = await refreshAccessToken();
+          const response = await axios.post('http://localhost:3000/api/users/me/photo', formData, {
+            headers: {
+              Authorization: `Bearer ${newToken}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          const newPictureUrl = response.data.pictureUrl || (user?.keycloak_id
+            ? `http://localhost:3000/api/users/${user.keycloak_id}/photo`
+            : null);
+          if (!newPictureUrl) {
+            throw new Error('No valid picture URL after retry');
+          }
+          setProfile({ ...profile, picture: newPictureUrl });
+          setPreview(newPictureUrl);
+          setShowPreview(false);
+          setMessage({ type: 'success', text: 'Profile picture updated!' });
+          setUser({ ...user, picture: newPictureUrl });
+        } catch (refreshErr) {
+          console.error('Refresh token failed:', refreshErr.message);
+          setMessage({ type: 'error', text: 'Session expired. Please log in again.' });
+        }
+      } else {
+        setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to upload image.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -122,19 +216,25 @@ function Profile() {
       <div className="card profile-header text-center mb-6">
         <div className="profile-pic-wrapper" onClick={handleIconClick}>
           {preview ? (
-            <img
-              src={preview}
-              alt="Profile"
-              className="profile-pic mx-auto mb-2 cursor-pointer"
-              onError={() => setPreview(null)}
-            />
+            <>
+              <img
+                src={preview}
+                alt="Profile"
+                className="profile-pic mx-auto mb-2 cursor-pointer"
+                onError={() => {
+                  console.warn('Image load failed:', preview); 
+                  setPreview(null);
+                }}
+              />
+              {/* <div className="text-xs text-gray-500">URL: {preview}</div> */}
+            </>
           ) : (
             <UserCircle2 size={64} className="mx-auto mb-2 text-orange cursor-pointer" />
           )}
         </div>
         <input
           type="file"
-          accept="image/jpeg,image/png" // Match backend
+          accept="image/jpeg,image/png"
           ref={fileInputRef}
           onChange={handleImageChange}
           className="hidden"

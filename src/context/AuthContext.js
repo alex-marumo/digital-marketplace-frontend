@@ -31,6 +31,36 @@ export function AuthProvider({ children }) {
     (error) => Promise.reject(error)
   );
 
+  const refreshAccessToken = async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      if (!storedRefreshToken) throw new Error('No refresh token available');
+      console.log('Refreshing token...');
+      const response = await axios.post(
+        `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`,
+        new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: KEYCLOAK_CLIENT_ID,
+          client_secret: KEYCLOAK_CLIENT_SECRET,
+          refresh_token: storedRefreshToken,
+        }),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      );
+      const { access_token, refresh_token } = response.data;
+      localStorage.setItem('accessToken', access_token);
+      localStorage.setItem('refreshToken', refresh_token);
+      setAccessToken(access_token);
+      setRefreshToken(refresh_token);
+      await parseTokenAndFetchUser(access_token);
+      console.log('Token refreshed:', access_token.slice(0, 20) + '...');
+      return access_token;
+    } catch (error) {
+      console.error('Token refresh failed:', error.message);
+      logout();
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
       const storedAccessToken = localStorage.getItem('accessToken');
@@ -57,22 +87,25 @@ export function AuthProvider({ children }) {
   const parseTokenAndFetchUser = async (token) => {
     try {
       const decoded = jwtDecode(token);
-        console.log('Decoded Keycloak token:', decoded);
-        const keycloakId = decoded.sub;
-        if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
-        const roles = decoded.realm_access?.roles || [];
-        const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
-        if (!role) {
-          console.warn('No valid role found, defaulting to buyer');
-          setUser({ keycloak_id: keycloakId, role: 'buyer' }); // Fallback
-          setAuthenticated(true);
-          return;
-       }
+      console.log('Decoded Keycloak token:', decoded);
+      const keycloakId = decoded.sub;
+      if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
+      const roles = decoded.realm_access?.roles || [];
+      const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
+      if (!role) {
+        console.warn('No valid role found, defaulting to buyer');
+        setUser({ keycloak_id: keycloakId, role: 'buyer' });
+        setAuthenticated(true);
+        return;
+      }
 
       const response = await api.get('/api/users/me');
       const userData = response.data;
       console.log('Fetched user data:', userData);
-      setUser({ ...userData, keycloak_id: keycloakId, role });
+      const pictureUrl = userData.profile_photo && keycloakId
+        ? `http://localhost:3000/api/users/${keycloakId}/photo`
+        : null;
+      setUser({ ...userData, keycloak_id: keycloakId, role, picture: pictureUrl });
       setAuthenticated(userData.is_verified || true);
     } catch (error) {
       console.error('Failed to parse token or fetch user data:', error.message);
@@ -81,6 +114,7 @@ export function AuthProvider({ children }) {
       throw error;
     }
   };
+
   const login = async (email, password) => {
     try {
       const response = await axios.post(
@@ -126,7 +160,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ authenticated, user, setUser, login, logout, token: accessToken }}>
+    <AuthContext.Provider value={{ authenticated, user, setUser, login, logout, token: accessToken, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );
