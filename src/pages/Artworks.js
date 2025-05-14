@@ -4,6 +4,7 @@ import axios from 'axios';
 import ArtworkCard from '../components/ArtworkCard';
 import CategoryButtons from '../components/CategoryButtons';
 import { API_BASE_URL } from '../config';
+import { useSearchParams } from 'react-router-dom';
 
 function Artworks() {
   const { user, token } = useAuth();
@@ -14,6 +15,8 @@ function Artworks() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOptions, setSortOptions] = useState({ field: 'created_at', order: 'desc' });
+  const [searchParams] = useSearchParams();
+  const initialArtistId = searchParams.get('artist');
 
   useEffect(() => {
     if (!token) return;
@@ -26,6 +29,18 @@ function Artworks() {
         setError('Failed to load categories');
       });
   }, [token]);
+
+  useEffect(() => {
+  const hash = window.location.hash;
+  if (hash === '#search-section') {
+    const target = document.querySelector(hash);
+    if (target) {
+      setTimeout(() => {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }, 100); // slight delay to wait for render
+    }
+  }
+}, []);
 
   useEffect(() => {
     if (!user || !token) {
@@ -46,7 +61,9 @@ function Artworks() {
         return; 
       }
      
-      if (user.role === 'artist' && user.keycloak_id) {
+      if (initialArtistId) {
+        params.append('artist', initialArtistId);
+      } else if (user.role === 'artist' && user.keycloak_id) {
         params.append('artist', user.keycloak_id);
       }
      
@@ -127,6 +144,7 @@ function Artworks() {
       </h1>
 
       {/* Unified Search & Sort Section */}
+      <div id="search-section" className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center"></div>
       <div className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center">
         <form onSubmit={handleSearch} className="search-bar flex gap-2">
           <input

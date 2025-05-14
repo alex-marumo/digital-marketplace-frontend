@@ -373,7 +373,7 @@ function Profile() {
         <h3 className="card-title">Your Actions</h3>
         <div className="action-buttons">
           {user?.role === 'artist' && (
-            <Link to={`/artworks/${user?.keycloak_id}`} className="button button-secondary">
+            <Link to="/artworks#search-section" className="button button-secondary">
               View Your Portfolio
             </Link>
           )}
