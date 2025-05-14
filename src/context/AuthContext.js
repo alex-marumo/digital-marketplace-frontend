@@ -61,44 +61,22 @@ export function AuthProvider({ children }) {
     }
   };
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const storedAccessToken = localStorage.getItem('accessToken');
-      const storedRefreshToken = localStorage.getItem('refreshToken');
+const parseTokenAndFetchUser = async (token) => {
+  try {
+    const decoded = jwtDecode(token);
+    console.log('Decoded Keycloak token:', decoded);
+    const keycloakId = decoded.sub;
+    if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
+    const roles = decoded.realm_access?.roles || [];
+    const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
+    if (!role) {
+      console.warn('No valid role found, defaulting to buyer');
+      setUser({ keycloak_id: keycloakId, role: 'buyer' });
+      setAuthenticated(true);
+      return;
+    }
 
-      if (storedAccessToken && storedRefreshToken) {
-        try {
-          setAccessToken(storedAccessToken);
-          setRefreshToken(storedRefreshToken);
-          await parseTokenAndFetchUser(storedAccessToken);
-        } catch (error) {
-          console.error('Auth initialization failed:', error.message);
-          logout();
-        }
-      } else {
-        setAuthenticated(false);
-        setUser(null);
-      }
-    };
-
-    initializeAuth();
-  }, []);
-
-  const parseTokenAndFetchUser = async (token) => {
     try {
-      const decoded = jwtDecode(token);
-      console.log('Decoded Keycloak token:', decoded);
-      const keycloakId = decoded.sub;
-      if (!keycloakId) throw new Error('No sub (keycloak_id) in token');
-      const roles = decoded.realm_access?.roles || [];
-      const role = roles.includes('admin') ? 'admin' : roles.includes('artist') ? 'artist' : roles.includes('buyer') ? 'buyer' : null;
-      if (!role) {
-        console.warn('No valid role found, defaulting to buyer');
-        setUser({ keycloak_id: keycloakId, role: 'buyer' });
-        setAuthenticated(true);
-        return;
-      }
-
       const response = await api.get('/api/users/me');
       const userData = response.data;
       console.log('Fetched user data:', userData);
@@ -107,13 +85,50 @@ export function AuthProvider({ children }) {
         : null;
       setUser({ ...userData, keycloak_id: keycloakId, role, picture: pictureUrl });
       setAuthenticated(userData.is_verified || true);
-    } catch (error) {
-      console.error('Failed to parse token or fetch user data:', error.message);
-      setUser(null);
+    } catch (fetchError) {
+      console.error('Failed to fetch user data:', fetchError.message);
+      if (fetchError.code === 'ERR_NETWORK' || fetchError.message.includes('Network Error')) {
+        setUser({ keycloak_id: keycloakId, role, error: 'Backend unreachable' });
+        setAuthenticated(false);
+        return; // Don't throw, let app continue
+      }
+      throw fetchError; // Rethrow other errors
+    }
+  } catch (error) {
+    console.error('Failed to parse token or fetch user data:', error.message);
+    setUser(null);
+    setAuthenticated(false);
+    throw error;
+  }
+};
+
+useEffect(() => {
+  const initializeAuth = async () => {
+    const storedAccessToken = localStorage.getItem('accessToken');
+    const storedRefreshToken = localStorage.getItem('refreshToken');
+
+    if (storedAccessToken && storedRefreshToken) {
+      try {
+        setAccessToken(storedAccessToken);
+        setRefreshToken(storedRefreshToken);
+        await parseTokenAndFetchUser(storedAccessToken);
+      } catch (error) {
+        console.error('Auth initialization failed:', error.message);
+        try {
+          await refreshAccessToken(); // Try refreshing token
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError.message);
+          logout();
+        }
+      }
+    } else {
       setAuthenticated(false);
-      throw error;
+      setUser(null);
     }
   };
+
+  initializeAuth();
+}, []);
 
   const login = async (email, password) => {
     try {

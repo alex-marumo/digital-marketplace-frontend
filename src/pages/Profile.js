@@ -2,7 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import { UserCircle2, Brush, ShoppingCart, X, Pencil } from 'lucide-react';
+import { debounce } from 'lodash';
+
+// Configure axios retries for network errors
+axiosRetry(axios, { retries: 3, retryDelay: (retryCount) => retryCount * 1000 });
 
 function Profile() {
   const { user, token, refreshAccessToken, setUser } = useAuth();
@@ -23,7 +28,7 @@ function Profile() {
       try {
         console.log('Fetching user from /api/users/me, token:', currentToken.slice(0, 20) + '...');
         const response = await axios.get('http://localhost:3000/api/users/me', {
-          headers: { Authorization: `Bearer ${currentToken}` }
+          headers: { Authorization: `Bearer ${currentToken}` },
         });
         console.log('Fetched user:', response.data);
         const pictureUrl = response.data.profile_photo && response.data.keycloak_id
@@ -33,12 +38,16 @@ function Profile() {
         setProfile({
           name: response.data.name || '',
           email: response.data.email || '',
-          picture: pictureUrl || ''
+          picture: pictureUrl || '',
         });
         setPreview(pictureUrl);
         console.log('Set preview:', pictureUrl);
       } catch (err) {
         console.error('Fetch user error:', err.response?.status, err.response?.data || err.message);
+        if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+          setMessage({ type: 'error', text: 'Server is down, try again later.' });
+          return;
+        }
         if (err.response?.status === 401 || err.response?.status === 403) {
           try {
             console.log('Retrying with refreshed token');
@@ -54,13 +63,12 @@ function Profile() {
       }
     };
 
-    // Use user.picture from AuthContext if available, else fetch
     if (user?.picture) {
       console.log('Using user.picture from AuthContext:', user.picture);
       setProfile({
         name: user.name || '',
         email: user.email || '',
-        picture: user.picture
+        picture: user.picture,
       });
       setPreview(user.picture);
     } else if (token) {
@@ -82,22 +90,52 @@ function Profile() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await axios.put('/api/users/me', {
+      const response = await axios.put('http://localhost:3000/api/users/me', {
         name: profile.name,
-        email: profile.email
+        email: profile.email,
       }, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setProfile({
         ...profile,
         name: response.data.user.name,
         email: response.data.user.email,
-        picture: response.data.user.pictureUrl || profile.picture
+        picture: response.data.user.pictureUrl || profile.picture,
       });
       setPreview(response.data.user.pictureUrl || profile.picture);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setUser({ ...user, name: response.data.user.name, email: response.data.user.email });
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update profile.' });
+      console.error('Update error:', err.response?.status, err.response?.data || err.message);
+      if (err.response?.status === 409) {
+        setMessage({ type: 'error', text: 'Yo, that email’s already taken! Pick another.' });
+      } else if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+        setMessage({ type: 'error', text: 'Server’s ghosting us, try again later.' });
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        try {
+          const newToken = await refreshAccessToken();
+          const retryResponse = await axios.put('http://localhost:3000/api/users/me', {
+            name: profile.name,
+            email: profile.email,
+          }, {
+            headers: { Authorization: `Bearer ${newToken}` },
+          });
+          setProfile({
+            ...profile,
+            name: retryResponse.data.user.name,
+            email: retryResponse.data.user.email,
+            picture: retryResponse.data.user.pictureUrl || profile.picture,
+          });
+          setPreview(retryResponse.data.user.pictureUrl || profile.picture);
+          setMessage({ type: 'success', text: 'Profile updated successfully!' });
+          setUser({ ...user, name: retryResponse.data.user.name, email: retryResponse.data.user.email });
+        } catch (refreshErr) {
+          console.error('Refresh token failed:', refreshErr.message);
+          setMessage({ type: 'error', text: 'Session expired. Please log in again.' });
+        }
+      } else {
+        setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update profile.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -149,8 +187,8 @@ function Profile() {
       const response = await axios.post('http://localhost:3000/api/users/me/photo', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
       console.log('Upload response:', response.data);
       const newPictureUrl = response.data.pictureUrl || (user?.keycloak_id
@@ -164,19 +202,20 @@ function Profile() {
       setPreview(newPictureUrl);
       setShowPreview(false);
       setMessage({ type: 'success', text: 'Profile picture updated!' });
-      // Update AuthContext user
       setUser({ ...user, picture: newPictureUrl });
     } catch (err) {
       console.error('Upload error:', err.response?.status, err.response?.data || err.message);
-      if (err.response?.status === 401 || err.response?.status === 403) {
+      if (err.code === 'ERR_NETWORK' || err.message.includes('Network Error')) {
+        setMessage({ type: 'error', text: 'Server’s down, can’t upload right now.' });
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
         try {
           console.log('Retrying upload with refreshed token');
           const newToken = await refreshAccessToken();
           const response = await axios.post('http://localhost:3000/api/users/me/photo', formData, {
             headers: {
               Authorization: `Bearer ${newToken}`,
-              'Content-Type': 'multipart/form-data'
-            }
+              'Content-Type': 'multipart/form-data',
+            },
           });
           const newPictureUrl = response.data.pictureUrl || (user?.keycloak_id
             ? `http://localhost:3000/api/users/${user.keycloak_id}/photo`
@@ -210,6 +249,8 @@ function Profile() {
     setProfile({ ...profile, picture: profile.picture || '' });
   };
 
+  const debouncedUpdate = debounce(handleUpdate, 300);
+
   return (
     <div className="container">
       <h1 className="text-2xl font-bold mb-4 text-center">Your Profile</h1>
@@ -222,11 +263,10 @@ function Profile() {
                 alt="Profile"
                 className="profile-pic mx-auto mb-2 cursor-pointer"
                 onError={() => {
-                  console.warn('Image load failed:', preview); 
+                  console.warn('Image load failed:', preview);
                   setPreview(null);
                 }}
               />
-              {/* <div className="text-xs text-gray-500">URL: {preview}</div> */}
             </>
           ) : (
             <UserCircle2 size={64} className="mx-auto mb-2 text-orange cursor-pointer" />
@@ -299,7 +339,7 @@ function Profile() {
             {message.text}
           </div>
         )}
-        <form onSubmit={handleUpdate}>
+        <form onSubmit={debouncedUpdate}>
           <div className="form-group">
             <label htmlFor="name" className="form-label">Name</label>
             <input
