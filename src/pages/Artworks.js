@@ -47,7 +47,7 @@ function Artworks() {
       }
      
       if (user.role === 'artist' && user.keycloak_id) {
-      params.append('artist', user.keycloak_id);
+        params.append('artist', user.keycloak_id);
       }
      
       if (searchQuery.trim()) params.append('query', searchQuery.trim());
@@ -100,6 +100,26 @@ function Artworks() {
     setSortOptions((prev) => ({ ...prev, order: e.target.value }));
   };
 
+  // Define the delete handler for artworks
+  const handleDelete = async (artworkId) => {
+  console.log('🚀 Deleting artwork:', { artworkId, token: token ? 'present' : 'missing' });
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/api/artworks/${artworkId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    console.log('✅ Delete success:', response.status, response.data);
+    setArtworks(artworks.filter(a => a.artwork_id !== artworkId));
+    alert('Artwork deleted! 🎉');
+  } catch (err) {
+    console.error('❌ Delete error:', {
+      status: err.response?.status,
+      message: err.response?.data?.error || err.message,
+      details: err.response?.data?.details
+    });
+    alert(`Failed to delete artwork: ${err.response?.data?.error || err.message}`);
+  }
+};
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold text-teal-600 mb-6 text-center">
@@ -110,35 +130,35 @@ function Artworks() {
       <div className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center">
         <form onSubmit={handleSearch} className="search-bar flex gap-2">
           <input
-          type="text"
-          value={searchQuery}
-          onChange={handleSearchChange}
-          placeholder="Search artworks..."
-          className="search-input border border-gray-300 rounded px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-teal-600"
-        />
-        <button type="submit" className="search-button bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
-          Search
-        </button>
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search artworks..."
+            className="search-input border border-gray-300 rounded px-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-teal-600"
+          />
+          <button type="submit" className="search-button bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
+            Search
+          </button>
         </form>
         
-      <div className="sort-options flex gap-2">
-        <select
-        value={sortOptions.field}
-        onChange={handleSortFieldChange}
-        className="sort-select border border-gray-300 rounded px-2 py-1"
-      >
-        <option value="created_at">Date</option>
-        <option value="price">Price</option>
-        <option value="category_id">Category</option>
-        </select>
-        <select
-        value={sortOptions.order}
-        onChange={handleSortOrderChange}
-        className="sort-select border border-gray-300 rounded px-2 py-1"
-      >
-        <option value="asc">Asc</option>
-        <option value="desc">Desc</option>
-        </select>
+        <div className="sort-options flex gap-2">
+          <select
+            value={sortOptions.field}
+            onChange={handleSortFieldChange}
+            className="sort-select border border-gray-300 rounded px-2 py-1"
+          >
+            <option value="created_at">Date</option>
+            <option value="price">Price</option>
+            <option value="category_id">Category</option>
+          </select>
+          <select
+            value={sortOptions.order}
+            onChange={handleSortOrderChange}
+            className="sort-select border border-gray-300 rounded px-2 py-1"
+          >
+            <option value="asc">Asc</option>
+            <option value="desc">Desc</option>
+          </select>
         </div>
       </div>
 
@@ -156,16 +176,21 @@ function Artworks() {
         {artworks.length > 0 ? (
           artworks.map((artwork) => (
             artwork.artwork_id ? (
-            <ArtworkCard key={artwork.artwork_id} artwork={artwork} userRole={user?.role} />
-          ) : (
-            console.warn('Skipping artwork with missing ID:', artwork)
-          )
-        ))
-      ) : (
-        !loading && (
-        <p className="text-center text-gray-500 col-span-full">
-          {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks found.'}
-          </p>
+              <ArtworkCard 
+                key={artwork.artwork_id} 
+                artwork={artwork} 
+                userRole={user?.role}
+                onDelete={user?.role === 'artist' ? handleDelete : undefined} // Pass onDelete only for artists
+              />
+            ) : (
+              console.warn('Skipping artwork with missing ID:', artwork)
+            )
+          ))
+        ) : (
+          !loading && (
+            <p className="text-center text-gray-500 col-span-full">
+              {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks found.'}
+            </p>
           )
         )}
       </div>

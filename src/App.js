@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -20,50 +20,37 @@ import Messages from './pages/Messages';
 import AdminPanel from './pages/AdminPanel';
 import Settings from './pages/Settings';
 
-function PrivateRoute({ component: Component, isAdminRoute = false, ...rest }) {
+function PrivateRoute({ component: Component, isAdminRoute = false }) {
   const { authenticated, user } = useAuth();
-  const navigate = useNavigate();
-  console.log('PrivateRoute props:', { isAdminRoute, path: rest.path, authenticated, role: user?.role, status: user?.status, user });
-
-  useEffect(() => {
-    if (authenticated === null) {
-      console.log('Auth state loading, waiting...');
-      return;
-    }
-    if (user?.role === 'admin' && isAdminRoute) {
-      console.log('Admin user, admin route, allowing render:', { path: rest.path, isAdminRoute });
-      return;
-    }
-    if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
-      console.log('Admin route blocked, redirecting to /dashboard:', { authenticated, role: user?.role });
-      navigate('/dashboard', { replace: true });
-    } else if (!isAdminRoute && !authenticated) {
-      console.log('Non-admin route, not authenticated, redirecting to /login-register');
-      navigate('/login-register', { replace: true });
-    } else {
-      console.log('PrivateRoute allowing render:', { path: rest.path, isAdminRoute });
-    }
-  }, [authenticated, user, isAdminRoute, navigate, rest.path]);
+  console.log('🔐 PrivateRoute:', {
+    path: Component.name,
+    isAdminRoute,
+    authenticated,
+    role: user?.role,
+    status: user?.status,
+  });
 
   if (authenticated === null) {
-    return <div>Loading...</div>; // Or a spinner component
+    console.log('⏳ Auth loading...');
+    return <div>Loading...</div>;
   }
-  if (user?.role === 'admin' && isAdminRoute) {
-    console.log('Rendering admin component:', { component: Component.name });
-    return <Component />;
-  }
-  if (isAdminRoute && (!user || !authenticated || user?.role !== 'admin')) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  if (!isAdminRoute && !authenticated) {
+
+  if (!authenticated) {
+    console.log('❌ Not authenticated, redirecting to /login-register');
     return <Navigate to="/login-register" replace />;
   }
 
+  if (isAdminRoute && user?.role !== 'admin') {
+    console.log('❌ Not admin, redirecting to /dashboard');
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  console.log('✅ Rendering component:', Component.name);
   return <Component />;
 }
 
 function App() {
-  console.log('App rendering, mounting routes');
+  console.log('🚀 App mounting routes');
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -80,7 +67,7 @@ function App() {
               <Route path="/admin-bypass" element={<AdminPanel />} />
               <Route path="/admin-force" element={<AdminPanel />} />
               <Route path="/debug-admin" element={<AdminPanel />} />
-              <Route path="/dashboard" element={<PrivateRoute component={Dashboard} isAdminRoute={false} />} />
+              <Route path="/dashboard" element={<PrivateRoute component={Dashboard} />} />
               <Route path="/profile" element={<PrivateRoute component={Profile} />} />
               <Route path="/settings" element={<PrivateRoute component={Settings} />} />
               <Route path="/artworks/:id" element={<PrivateRoute component={ArtworkDetail} />} />

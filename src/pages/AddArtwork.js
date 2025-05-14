@@ -34,43 +34,43 @@ function AddArtwork() {
   }, [token]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    if (!token) {
-      setError('You must be logged in to add artwork.');
-      setTimeout(() => navigate('/login-register'), 1000);
-      return;
+  e.preventDefault();
+  setError(null);
+  setSuccess(null);
+  if (!token) {
+    setError('You must be logged in to add artwork.');
+    setTimeout(() => navigate('/login-register'), 1000);
+    return;
+  }
+  const data = new FormData();
+  Object.keys(formData).forEach((key) => {
+    if (key === 'category_id') {
+      data.append(key, parseInt(formData[key]));
+    } else {
+      data.append(key, formData[key]);
     }
-    const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      if (key === 'category_id') {
-        data.append(key, parseInt(formData[key]));
-      } else {
-        data.append(key, formData[key]);
+  });
+  try {
+    const response = await axios.post('http://localhost:3000/api/artworks', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
       }
     });
-    try {
-      const response = await axios.post('http://localhost:3000/api/artworks', data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      console.log('Artwork added successfully:', response.data);
-      setSuccess('Artwork added successfully!');
-      setTimeout(() => navigate('/dashboard'), 1000);
-    } catch (err) {
-      console.error('Submit artwork error:', {
-        status: err.response?.status,
-        message: err.response?.data?.error,
-        details: err.response?.data?.details,
-        rawError: err.message,
-        stack: err.stack,
-      });
-      setError(err.response?.data?.details || err.response?.data?.error || 'Failed to add artwork');
-    }
-  };
+    console.log('Artwork added successfully:', response.data);
+    setSuccess('Artwork added successfully!');
+    setTimeout(() => navigate('/dashboard'), 1000);
+  } catch (err) {
+    console.error('Submit artwork error:', {
+      status: err.response?.status,
+      message: err.response?.data?.error,
+      details: err.response?.data?.details,
+      rawError: err.message,
+      stack: err.stack,
+    });
+    setError(err.response?.data?.details || err.response?.data?.error || 'Failed to add artwork');
+  }
+};
 
   return (
     <div className="container">
