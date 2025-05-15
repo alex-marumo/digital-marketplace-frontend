@@ -150,7 +150,6 @@ function ArtworkDetail() {
     alert(`Failed to process purchase: ${err.response?.data?.error || 'Unknown error'}. Please try again.`);
   }
 };
-
   const handleReview = async (e) => {
     e.preventDefault();
     if (!review.trim()) {
@@ -314,6 +313,7 @@ function ArtworkDetail() {
       )}
       <button
         onClick={() => navigate('/artworks')}
+
         style={{ display: 'block', margin: '0 auto', fontSize: '1rem', color: '#4a7289', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.3s' }}
         onMouseOver={(e) => (e.target.style.color = '#355b71')}
         onMouseOut={(e) => (e.target.style.color = '#4a7289')}

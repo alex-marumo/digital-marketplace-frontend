@@ -22,19 +22,25 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
   const startThread = debounce(async (e) => {
     e.stopPropagation();
     e.preventDefault();
+
     console.log('💬 startThread triggered:', {
+
       artwork_id: artwork.artwork_id,
       user,
       token: token ? 'present' : 'missing',
     });
     if (!token || !user) {
+
       console.warn('❌ No token or user, redirecting to login');
+
       navigate('/login-register');
       return;
     }
     const artworkId = parseInt(artwork.artwork_id);
     if (isNaN(artworkId)) {
+
       console.error('❌ Invalid artwork_id:', artwork.artwork_id);
+
       setError('Invalid artwork ID.');
       return;
     }
@@ -46,6 +52,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
         { artworkId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       console.log('✅ Thread response:', res.data);
       if (res.data.redirect) {
         console.log('➡️ Redirecting to existing/restored thread:', res.data.thread.id);
@@ -56,6 +63,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
       }
     } catch (err) {
       console.error('❌ Start thread error:', err.response?.data || err.message);
+      
       if (err.response?.status === 409) {
         setError('A conversation for this artwork already exists. Check your messages!');
       } else if (err.response?.status === 429) {
@@ -66,6 +74,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
     } finally {
       setIsLoading(false);
     }
+
   }, 500);
 
   const formatter = new Intl.NumberFormat('en-BW', {
@@ -80,6 +89,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
     : '/placeholder.jpg';
 
   console.log('🎨 ArtworkCard props:', {
+
     id: artwork.artwork_id,
     title: artwork.title,
     image_url: artwork.image_url,
@@ -89,6 +99,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
   });
 
   if (!artwork.artwork_id) {
+
     console.warn('❌ Invalid artwork_id:', artwork);
     return null;
   }
@@ -144,6 +155,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
   }
 };
 
+
   return (
     <div
       style={{
@@ -170,7 +182,9 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
         to={`/artworks/${artwork.artwork_id}`}
         onClick={(e) => {
           e.stopPropagation();
+
           console.log('🔗 Image Link clicked:', `/artworks/${artwork.artwork_id}`);
+
         }}
       >
         <img
@@ -186,7 +200,9 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
           onError={(e) => {
             if (e.target.src !== '/placeholder.jpg') {
               e.target.src = '/placeholder.jpg';
+
               console.log('🖼️ Image load error:', {
+
                 attempted_url: e.target.src,
                 artwork_id: artwork.artwork_id,
               });
@@ -258,7 +274,9 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
               }}
               onClick={(e) => {
                 e.stopPropagation();
+
                 console.log('🔗 View Details clicked:', `/artworks/${artwork.artwork_id}`);
+
               }}
               onMouseOver={(e) => (e.target.style.color = '#ff6200')}
               onMouseOut={(e) => (e.target.style.color = '#4a7289')}
@@ -266,6 +284,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
               View Details
             </Link>
           )}
+
           {userRole === 'artist' && (
             <div style={{ marginTop: '0.5rem' }}>
               <button
@@ -299,6 +318,7 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
               </button>
             </div>
           )}
+
           {userRole === 'buyer' && (
             <button
               onClick={startThread}

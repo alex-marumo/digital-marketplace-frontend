@@ -16,6 +16,7 @@ function Orders() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showCancelled, setShowCancelled] = useState(false); // New state for toggle
 
+
   const fetchOrders = async (page = 1) => {
     setLoading(true);
     try {
@@ -52,7 +53,6 @@ function Orders() {
       setLoading(false);
     }
   };
-
   const handlePayNow = async (orderId, amount) => {
   if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber) {
     alert('Please enter a phone number for mobile money payments.');
@@ -114,7 +114,6 @@ function Orders() {
       fetchOrders(newPage);
     }
   };
-
   const formatter = new Intl.NumberFormat('en-BW', { style: 'currency', currency: 'BWP' });
 
   if (loading) return (

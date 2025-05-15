@@ -194,6 +194,7 @@ function Artworks() {
         {artworks.length > 0 ? (
           artworks.map((artwork) => (
             artwork.artwork_id ? (
+
               <ArtworkCard 
                 key={artwork.artwork_id} 
                 artwork={artwork} 
