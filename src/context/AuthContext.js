@@ -130,6 +130,27 @@ useEffect(() => {
   initializeAuth();
 }, []);
 
+  const register = async (email, name, password, recaptchaToken) => {
+    try {
+      console.log('Registering:', { email, name, recaptchaToken });
+      const response = await fetch(`${API_BASE_URL}/api/pre-register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name, password, recaptchaToken }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Backend error response:', errorData);
+        throw new Error(errorData.error || 'Registration failed');
+      }
+      const data = await response.json();
+      return { message: data.message, nextStep: 'verify-email' }; // Signal next step
+    } catch (error) {
+      console.error("Registration failed:", error.message);
+      throw error;
+    }
+  };
+
   const login = async (email, password) => {
     try {
       const response = await axios.post(
@@ -175,7 +196,7 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider value={{ authenticated, user, setUser, login, logout, token: accessToken, refreshAccessToken }}>
+    <AuthContext.Provider value={{ authenticated, register, user, setUser, login, logout, token: accessToken, refreshAccessToken }}>
       {children}
     </AuthContext.Provider>
   );
