@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { Settings as SettingsIcon, User, Trash2, Lock } from 'lucide-react';
+import { useRef } from 'react';
+import { Pencil, X } from 'lucide-react'; // if you want icons for preview/edit
 
 function Settings() {
   const { user, token } = useAuth();
@@ -17,6 +19,9 @@ function Settings() {
     confirmPassword: '',
   });
   const [passwordError, setPasswordError] = useState(null);
+  const [profilePic, setProfilePic] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -35,7 +40,7 @@ function Settings() {
     setLoading((prev) => ({ ...prev, profile: true }));
     setMessage(null);
     try {
-      await axios.put('/api/users/me', profile, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.put('http://localhost:3000/api/users/me', profile, { headers: { Authorization: `Bearer ${token}` } });
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update profile.' });
@@ -57,6 +62,47 @@ function Settings() {
       setLoading((prev) => ({ ...prev, settings: false }));
     }
   };
+
+  const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    setMessage({ type: 'error', text: 'Image must be under 2MB.' });
+    return;
+  }
+
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    setMessage({ type: 'error', text: 'Only JPG/PNG allowed.' });
+    return;
+  }
+
+  setProfilePic(file);
+  setPreview(URL.createObjectURL(file));
+};
+
+const handleImageUpload = async () => {
+  if (!profilePic) {
+    setMessage({ type: 'error', text: 'No image selected.' });
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('profilePhoto', profilePic);
+
+  try {
+    const response = await axios.post('http://localhost:3000/api/users/me/photo', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    setMessage({ type: 'success', text: 'Profile picture updated!' });
+    setPreview(response.data.pictureUrl); // optional: reflect uploaded pic
+  } catch (err) {
+    setMessage({ type: 'error', text: err.response?.data?.error || 'Upload failed.' });
+  }
+};
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
@@ -172,6 +218,28 @@ function Settings() {
           >
             {loading.profile ? 'Updating...' : 'Save Profile'}
           </button>
+          <div className="form-group mb-4">
+  <label className="form-label block text-gray-700 font-medium mb-1">Profile Picture</label>
+  {preview && (
+    <img src={preview} alt="Preview" className="w-24 h-24 rounded-full object-cover mb-2" />
+  )}
+  <input
+    type="file"
+    accept="image/png, image/jpeg"
+    ref={fileInputRef}
+    className="form-input"
+    onChange={handleImageChange}
+    disabled={loading.profile}
+  />
+  <button
+    type="button"
+    className="button mt-2 bg-orange text-white py-1 px-3 rounded-md"
+    onClick={handleImageUpload}
+    disabled={loading.profile}
+  >
+    Upload Photo
+  </button>
+</div>
         </form>
       </div>
 

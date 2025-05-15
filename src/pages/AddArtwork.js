@@ -5,47 +5,72 @@ import axios from 'axios';
 
 function AddArtwork() {
   const { token } = useAuth();
-  const navigate = useNavigate(); // Renamed for clarity
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ title: '', description: '', price: '', category_id: '', image: null });
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
-    axios.get('/api/categories').then(res => setCategories(res.data)).catch(err => {
-      console.error('Fetch categories error:', err.message);
-      setError('Failed to load categories');
-    });
-  }, []);
+    const fetchCategories = async () => {
+      try {
+        console.log('Fetching categories with token:', token ? 'present' : 'missing');
+        const response = await axios.get('http://localhost:3000/api/categories', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Categories fetched:', response.data);
+        setCategories(response.data);
+      } catch (err) {
+        console.error('Fetch categories error:', {
+          status: err.response?.status,
+          message: err.response?.data?.error,
+          details: err.response?.data?.details,
+          rawError: err.message
+        });
+        setError('Failed to load categories. Please try again.');
+      }
+    };
+    if (token) fetchCategories();
+  }, [token]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    const data = new FormData();
-    Object.keys(formData).forEach((key) => {
-      if (key === 'category_id') {
-        data.append(key, parseInt(formData[key]));
-      } else {
-        data.append(key, formData[key]);
+  e.preventDefault();
+  setError(null);
+  setSuccess(null);
+  if (!token) {
+    setError('You must be logged in to add artwork.');
+    setTimeout(() => navigate('/login-register'), 1000);
+    return;
+  }
+  const data = new FormData();
+  Object.keys(formData).forEach((key) => {
+    if (key === 'category_id') {
+      data.append(key, parseInt(formData[key]));
+    } else {
+      data.append(key, formData[key]);
+    }
+  });
+  try {
+    const response = await axios.post('http://localhost:3000/api/artworks', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data'
       }
     });
-    try {
-      const response = await axios.post('/api/artworks', data, { headers: { Authorization: `Bearer ${token}` } });
-      console.log('Artwork added successfully:', response.data);
-      setSuccess('Artwork added successfully!');
-      setTimeout(() => navigate('/dashboard'), 1000); // Delay for user to see success
-    } catch (err) {
-      console.error('Submit artwork error:', {
-        status: err.response?.status,
-        message: err.response?.data?.error,
-        details: err.response?.data?.details,
-        rawError: err.message,
-        stack: err.stack,
-      });
-      setError(err.response?.data?.details || err.response?.data?.error || 'Failed to add artwork');
-    }
-  };
+    console.log('Artwork added successfully:', response.data);
+    setSuccess('Artwork added successfully!');
+    setTimeout(() => navigate('/dashboard'), 1000);
+  } catch (err) {
+    console.error('Submit artwork error:', {
+      status: err.response?.status,
+      message: err.response?.data?.error,
+      details: err.response?.data?.details,
+      rawError: err.message,
+      stack: err.stack,
+    });
+    setError(err.response?.data?.details || err.response?.data?.error || 'Failed to add artwork');
+  }
+};
 
   return (
     <div className="container">
@@ -54,6 +79,7 @@ function AddArtwork() {
           max-width: 600px;
           margin: 0 auto;
           padding: 20px;
+          background-color: #f4f1de;
         }
         .form-group {
           margin-bottom: 15px;
@@ -70,8 +96,8 @@ function AddArtwork() {
         .form-group input:focus,
         .form-group select:focus {
           outline: none;
-          border-color: #f28c38;
-          box-shadow: 0 0 5px rgba(242, 140, 56, 0.3);
+          border-color: #ff6200;
+          box-shadow: 0 0 5px rgba(255, 98, 0, 0.3);
         }
         .select {
           appearance: none;
@@ -79,14 +105,14 @@ function AddArtwork() {
           background-color: #fff;
           cursor: pointer;
         }
-        .select:hover {
-          border-color: #f28c38;
+        .select:hover {=
+          border-color: #ff6200;
         }
         .button {
           display: block;
           width: 100%;
           padding: 12px;
-          background: #f28c38;
+          background: #ff6200;
           color: #fff;
           border: none;
           border-radius: 4px;
@@ -107,6 +133,11 @@ function AddArtwork() {
           margin-bottom: 15px;
           font-size: 14px;
         }
+        h1 {
+          color: #ff6200;
+          text-align: center;
+          margin-bottom: 20px;
+        }
       `}</style>
       <h1>Add New Artwork</h1>
       {error && <div className="error">{error}</div>}
@@ -118,6 +149,7 @@ function AddArtwork() {
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             placeholder="Title"
+            required
           />
         </div>
         <div className="form-group">
@@ -134,12 +166,17 @@ function AddArtwork() {
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             placeholder="Price"
+            required
+            min="0"
+            step="0.01"
           />
         </div>
         <div className="form-group">
           <input
             type="file"
+            accept="image/*"
             onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
+            required
           />
         </div>
         <div className="form-group">
@@ -147,6 +184,7 @@ function AddArtwork() {
             className="select"
             value={formData.category_id}
             onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+            required
           >
             <option value="">Select Category</option>
             {categories.map(category => (

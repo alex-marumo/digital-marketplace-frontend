@@ -5,16 +5,52 @@ import {
   Menu, LogOut, UserCircle2, ImagePlus, Palette, MessageSquare, ShoppingBag, Home, Grid,
   Search, Users, Settings
 } from 'lucide-react';
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import '../styles/styles.css';
 
 function Header() {
-  const { authenticated, user, logout } = useAuth();
+  const { authenticated, user, logout, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginClicked, setLoginClicked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState({ messages: 0, orders: 0 });
 
   const isLandingOrLoginPage = location.pathname === '/' || location.pathname === '/login-register';
+
+
+  // Fetch notification counts for messages and orders
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!authenticated || !user?.is_verified || !token || user.role === 'admin') {
+        setNotifications({ messages: 0, orders: 0 });
+        return;
+      }
+
+      try {
+        // Fetch unread message count
+        const messagesRes = await axios.get(`${API_BASE_URL}/api/notifications/messages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const messageCount = messagesRes.data.count || 0;
+
+        // Fetch order count based on role
+        const ordersRes = await axios.get(`${API_BASE_URL}/api/notifications/orders`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const orderCount = ordersRes.data.count || 0;
+
+        setNotifications({ messages: messageCount, orders: orderCount });
+      } catch (err) {
+        console.error('[NOTIFICATIONS ERROR]', err.response?.data || err.message);
+        setNotifications({ messages: 0, orders: 0 }); // Fallback to 0 on error
+      }
+    };
+
+    fetchNotifications();
+    // Refetch when auth state or role changes
+  }, [authenticated, user?.is_verified, user?.role, token]);
 
   useEffect(() => {
     console.log('Redirect check:', { authenticated, isVerified: user?.is_verified, path: location.pathname, user });
@@ -41,7 +77,8 @@ function Header() {
   const commonLinks = [
     { to: '/dashboard', icon: <Grid size={16} />, label: 'Dashboard' },
     { to: '/profile', icon: <UserCircle2 size={16} />, label: 'Profile' },
-    
+
+
   ];
 
   const renderMenuItems = () => {
@@ -70,8 +107,20 @@ function Header() {
       if (user.role === 'buyer') {
         roleLinks = [
           ...commonLinks,
-          { to: '/orders', icon: <ShoppingBag size={16} />, label: 'Orders' },
-          { to: '/messages', icon: <MessageSquare size={16} />, label: 'Messages' },
+
+          {
+            to: '/orders',
+            icon: <ShoppingBag size={16} />,
+            label: 'Orders',
+            badge: notifications.orders > 0 ? notifications.orders : null,
+          },
+          {
+            to: '/messages',
+            icon: <MessageSquare size={16} />,
+            label: 'Messages',
+            badge: notifications.messages > 0 ? notifications.messages : null,
+          },
+
           { to: '/artworks', icon: <Search size={16} />, label: 'Search Artworks' },
           { to: '/settings', icon: <Settings size={16} />, label: 'Settings' },
         ];
@@ -79,8 +128,21 @@ function Header() {
         roleLinks = [
           ...commonLinks,
           { to: '/artworks', icon: <Palette size={16} />, label: 'My Artworks' },
-          { to: '/messages', icon: <MessageSquare size={16} />, label: 'Messages' },
+
+          {
+            to: '/messages',
+            icon: <MessageSquare size={16} />,
+            label: 'Messages',
+            badge: notifications.messages > 0 ? notifications.messages : null,
+          },
           { to: '/add-artwork', icon: <ImagePlus size={16} />, label: 'Add Artwork' },
+          {
+            to: '/orders',
+            icon: <ShoppingBag size={16} />,
+            label: 'Orders',
+            badge: notifications.orders > 0 ? notifications.orders : null,
+          },
+
           { to: '/settings', icon: <Settings size={16} />, label: 'Settings' },
         ];
       } else if (user.role === 'admin') {
@@ -92,10 +154,15 @@ function Header() {
 
       return (
         <>
-          {roleLinks.map(({ to, icon, label }) => (
+
+          {roleLinks.map(({ to, icon, label, badge }) => (
             <li key={to}>
               <Link to={to} onClick={toggleMenu}>
                 {icon} {label}
+                {badge && (
+                  <span className="notification-badge">{badge}</span>
+                )}
+
               </Link>
             </li>
           ))}

@@ -139,7 +139,7 @@ function LoginRegister() {
       }
     } catch (err) {
       console.error('Submit error:', err.message);
-      setError(err.message || 'Login/Register failed—check your details');
+      setError(err.response?.data?.error || err.message || 'Registration failed—check your details');
     }
   };
 
