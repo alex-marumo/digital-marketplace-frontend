@@ -1,6 +1,6 @@
 {
-  "short_name": "ReactApp",
-  "name": "React Application",
+  "short_name": "Artistic",
+  "name": "Artistic Marketplace",
   "icons": [],
   "start_url": ".",
   "display": "standalone",

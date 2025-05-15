@@ -88,57 +88,68 @@ function ArtworkDetail() {
   }, [id]);
 
   const handlePurchase = async () => {
-    if (!artwork) {
-      console.log('[ARTWORK PURCHASE ERROR] No artwork loaded');
-      return;
-    }
-    if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber.trim()) {
-      alert('Please enter a phone number for mobile money payments.');
-      console.log('[ARTWORK PURCHASE ERROR] Missing phone number for mobile money');
-      return;
-    }
-    try {
-      console.log('[ARTWORK PURCHASE DEBUG] Creating order:', { artworkId: id, paymentMethod, phoneNumber });
-      // Step 1: Create order
-      const orderRes = await axios.post(
-        `${API_BASE_URL}/api/orders`,
-        { artwork_id: id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('[ARTWORK PURCHASE ORDER SUCCESS] Order created:', orderRes.data);
+  if (!artwork) {
+    console.log('[ARTWORK PURCHASE ERROR] No artwork loaded');
+    alert('Artwork not loaded. Please try refreshing the page.');
+    return;
+  }
+  if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber.trim()) {
+    console.log('[ARTWORK PURCHASE ERROR] Missing phone number for mobile money');
+    alert('Please enter a phone number for mobile money payments.');
+    return;
+  }
+  if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !/^\+267\d{8}$/.test(phoneNumber)) {
+  alert('Please enter a valid Botswana phone number (e.g., +26712345678).');
+  return;
+}
+  if (!id || isNaN(id)) {
+    console.log('[ARTWORK PURCHASE ERROR] Invalid artwork ID:', id);
+    alert('Invalid artwork ID. Please try again.');
+    return;
+  }
 
-      // Step 2: Initiate payment
-      const paymentRes = await axios.post(
-        `${API_BASE_URL}/api/payments`,
-        {
-          order_id: orderRes.data.order_id,
-          amount: artwork.price,
-          payment_method: paymentMethod,
-          phone_number: phoneNumber
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log('[ARTWORK PURCHASE PAYMENT SUCCESS] Payment initiated:', paymentRes.data);
+  try {
+    console.log('[ARTWORK PURCHASE DEBUG] Creating order:', { artworkId: id, paymentMethod, phoneNumber });
+    // Step 1: Create order
+    const orderRes = await axios.post(
+      `${API_BASE_URL}/api/orders`,
+      { artworkId: parseInt(id), paymentMethod }, // Match backend's camelCase
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    console.log('[ARTWORK PURCHASE ORDER SUCCESS] Order created:', orderRes.data);
 
-      if (paymentRes.data.paymentUrl) {
-        if (paymentMethod === 'paypal') {
-          console.log('[ARTWORK PURCHASE REDIRECT] Redirecting to PayPal:', paymentRes.data.paymentUrl);
-          window.location.href = paymentRes.data.paymentUrl;
+    // Step 2: Initiate payment
+    const paymentRes = await axios.post(
+      `${API_BASE_URL}/api/payments`,
+      {
+        order_id: orderRes.data.order_id,
+        amount: artwork.price,
+        payment_method: paymentMethod,
+        phone_number: phoneNumber
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    console.log('[ARTWORK PURCHASE PAYMENT SUCCESS] Payment initiated:', paymentRes.data);
+
+    if (paymentRes.data.paymentUrl) {
+      if (paymentMethod === 'paypal') {
+        console.log('[ARTWORK PURCHASE REDIRECT] Skipping redirect — navigating to Orders');
+        navigate('/orders'); // ✅ Route to orders page
         } else {
-          console.log('[ARTWORK PURCHASE USSD] Showing USSD instructions:', paymentRes.data.paymentUrl);
-          alert(`Please follow these instructions to complete your payment: ${paymentRes.data.paymentUrl}`);
-          window.location.href = paymentRes.data.paymentUrl; // Redirect to mock payment page
-        }
+        console.log('[ARTWORK PURCHASE USSD] Showing USSD instructions:', paymentRes.data.paymentUrl);
+        alert(`Please follow these instructions to complete your payment: ${paymentRes.data.paymentUrl}`);
+        window.location.href = paymentRes.data.paymentUrl; 
       }
-    } catch (err) {
-      console.error('[ARTWORK PURCHASE ERROR]:', {
-        status: err.response?.status,
-        message: err.response?.data?.error,
-        details: err.response?.data?.details,
-      });
-      alert('Failed to process purchase. Please try again.');
     }
-  };
+  } catch (err) {
+    console.error('[ARTWORK PURCHASE ERROR]:', {
+      status: err.response?.status,
+      message: err.response?.data?.error,
+      details: err.response?.data?.details,
+    });
+    alert(`Failed to process purchase: ${err.response?.data?.error || 'Unknown error'}. Please try again.`);
+  }
+};
 
   const handleReview = async (e) => {
     e.preventDefault();
