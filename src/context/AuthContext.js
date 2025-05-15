@@ -84,7 +84,7 @@ const parseTokenAndFetchUser = async (token) => {
         ? `http://localhost:3000/api/users/${keycloakId}/photo`
         : null;
       setUser({ ...userData, keycloak_id: keycloakId, role, picture: pictureUrl });
-      setAuthenticated(userData.is_verified || true);
+      setAuthenticated(true);
     } catch (fetchError) {
       console.error('Failed to fetch user data:', fetchError.message);
       if (fetchError.code === 'ERR_NETWORK' || fetchError.message.includes('Network Error')) {

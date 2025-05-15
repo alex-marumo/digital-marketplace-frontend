@@ -1018,3 +1018,20 @@
   border-radius: 0.5rem;
   cursor: pointer;
 }
+
+/* Notification badge for order and message counts */
+.notification-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background-color: #d00000;
+  color: #f4f1de;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+  margin-left: 8px;
+  line-height: 1;
+}

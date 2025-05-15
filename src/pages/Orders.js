@@ -54,33 +54,35 @@ function Orders() {
   };
 
   const handlePayNow = async (orderId, amount) => {
-    if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber) {
-      alert('Please enter a phone number for mobile money payments.');
-      return;
-    }
-    try {
-      const res = await axios.post(
-        `${API_BASE_URL}/api/payments`,
-        { order_id: orderId, amount, payment_method: paymentMethod, phone_number: phoneNumber },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.data.paymentUrl) {
-        if (paymentMethod === 'paypal') {
-          window.location.href = res.data.paymentUrl;
-        } else {
-          alert(`Please complete payment via ${paymentMethod === 'orange_money' ? '*145#' : '*167#'}. URL: ${res.data.paymentUrl}`);
-          window.location.href = res.data.paymentUrl;
-        }
+  if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber) {
+    alert('Please enter a phone number for mobile money payments.');
+    return;
+  }
+  try {
+    const res = await axios.post(
+      `${API_BASE_URL}/api/payments`,
+      { order_id: orderId, amount, payment_method: paymentMethod, phone_number: phoneNumber },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (res.data.paymentUrl) {
+      if (paymentMethod === 'paypal') {
+        window.location.href = res.data.paymentUrl;
       } else {
-        alert('Payment initiated but no redirect URL provided. Check orders or contact support.');
+        // Store token for mock payment page
+        localStorage.setItem('token', token);
+        alert(`Please complete payment via ${paymentMethod === 'orange_money' ? '*145#' : '*167#'}. Follow the steps on the next page.`);
+        window.location.href = res.data.paymentUrl;
       }
-    } catch (err) {
-      const errorMessage = err.response?.data?.details?.includes('column')
-        ? 'Payment system error. Try Orange Money or MyZaka, or contact support.'
-        : err.response?.data?.error || 'Failed to initiate payment. Try again.';
-      alert(errorMessage);
+    } else {
+      alert('Payment initiated but no redirect URL provided. Check orders or contact support.');
     }
-  };
+  } catch (err) {
+    const errorMessage = err.response?.data?.details?.includes('column')
+      ? 'Payment system error. Try Orange Money or MyZaka, or contact support.'
+      : err.response?.data?.error || 'Failed to initiate payment. Try again.';
+    alert(errorMessage);
+  }
+};
 
   const handleCancelOrder = async (orderId) => {
     const confirmCancel = window.confirm('Are you sure you want to cancel this order?');
