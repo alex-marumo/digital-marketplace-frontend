@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
-// Simple debounce utility
 const debounce = (func, wait) => {
   let timeout;
   return (...args) => {
@@ -13,20 +12,24 @@ const debounce = (func, wait) => {
   };
 };
 
-function ArtworkCard({ artwork, showDetails = true, userRole }) {
+function ArtworkCard({ artwork, showDetails = true, userRole, onDelete }) { // Added onDelete prop
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Ensure artwork and artwork.status exist before trying to access them
+  const isSold = artwork && artwork.status === 'sold';
+
   const startThread = debounce(async (e) => {
     e.stopPropagation();
     e.preventDefault();
+    if (isSold) return; // Don't start thread if sold
 
     console.log('💬 startThread triggered:', {
 
       artwork_id: artwork.artwork_id,
-      user,
+      user_id: user?.keycloak_id,
       token: token ? 'present' : 'missing',
     });
     if (!token || !user) {
@@ -54,13 +57,8 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
       );
 
       console.log('✅ Thread response:', res.data);
-      if (res.data.redirect) {
-        console.log('➡️ Redirecting to existing/restored thread:', res.data.thread.id);
-        navigate(`/messages/${res.data.thread.id}`);
-      } else {
-        console.log('➡️ Redirecting to new thread:', res.data.id);
-        navigate(`/messages/${res.data.id}`);
-      }
+      const threadToNavigate = res.data.redirect ? res.data.thread.id : res.data.id;
+      navigate(`/messages/${threadToNavigate}`);
     } catch (err) {
       console.error('❌ Start thread error:', err.response?.data || err.message);
       
@@ -74,35 +72,44 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
     } finally {
       setIsLoading(false);
     }
-
-  }, 500);
+  }, 300); // Reduced debounce for quicker interaction
 
   const formatter = new Intl.NumberFormat('en-BW', {
     style: 'currency',
     currency: 'BWP',
   });
 
-  const imageSrc = artwork.image_url?.startsWith('/assets/')
+  // Defensive check for artwork and its properties
+  if (!artwork || !artwork.artwork_id) {
+    console.warn('❌ Invalid artwork object passed to ArtworkCard:', artwork);
+    return null; // Or some placeholder/error UI
+  }
+
+  const imageSrc = artwork.image_url?.startsWith('http') || artwork.image_url?.startsWith('/assets/')
     ? artwork.image_url
     : artwork.image_url
     ? `${API_BASE_URL}${artwork.image_url}`
     : '/placeholder.jpg';
 
-  console.log('🎨 ArtworkCard props:', {
+  const handleCardClick = (e) => {
+    if (isSold) {
+      e.preventDefault(); // Prevent navigation if sold
+      return;
+    }
+    navigate(`/artworks/${artwork.artwork_id}`);
+  };
+  
+  const handleEdit = (e) => {
+    e.stopPropagation(); // Prevent card click
+    navigate(`/edit-artwork/${artwork.artwork_id}`);
+  };
 
-    id: artwork.artwork_id,
-    title: artwork.title,
-    image_url: artwork.image_url,
-    artist_id: artwork.artist_id,
-    computed_image_src: imageSrc,
-    userRole,
-  });
-
-  if (!artwork.artwork_id) {
-
-    console.warn('❌ Invalid artwork_id:', artwork);
-    return null;
-  }
+  const handleDeleteClick = (e) => {
+    e.stopPropagation(); // Prevent card click
+    if (onDelete) {
+      onDelete(artwork.artwork_id);
+    }
+  };
 
   // Handler for Edit button
   const handleEdit = (e) => {
@@ -163,193 +170,130 @@ function ArtworkCard({ artwork, showDetails = true, userRole }) {
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
         overflow: 'hidden',
-        cursor: 'pointer',
         transition: 'transform 0.3s, box-shadow 0.3s',
-        maxWidth: '300px',
-        margin: '1rem',
+        maxWidth: '300px', // Consistent width
+        margin: '1rem auto', // Centering cards if grid doesn't fill
+        position: 'relative', // For SOLD badge positioning
+        opacity: isSold ? 0.7 : 1,
+        cursor: isSold ? 'default' : 'pointer',
       }}
-      onMouseOver={(e) => {
-        e.currentTarget.style.transform = 'scale(1.05)';
-        e.currentTarget.style.boxShadow = '0 6px 16px rgba(255,98,0,0.3)';
-      }}
-      onMouseOut={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-      }}
-      onClick={(e) => e.stopPropagation()}
+      onMouseOver={(e) => { if (!isSold) { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(255,98,0,0.3)'; }}}
+      onMouseOut={(e) => { if (!isSold) { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}}
+      onClick={handleCardClick} // Use the wrapper div for navigation click
     >
-      <Link
-        to={`/artworks/${artwork.artwork_id}`}
-        onClick={(e) => {
-          e.stopPropagation();
-
-          console.log('🔗 Image Link clicked:', `/artworks/${artwork.artwork_id}`);
-
-        }}
-      >
+      <div style={{ position: 'relative' }}> {/* Container for image and SOLD badge */}
         <img
           src={imageSrc}
-          alt={artwork.title || 'Featured Artwork'}
+          alt={artwork.title || 'Artwork Image'}
           style={{
             width: '100%',
             height: '200px',
             objectFit: 'cover',
             borderTopLeftRadius: '8px',
             borderTopRightRadius: '8px',
+            display: 'block', // Ensure image is block for proper layout
           }}
           onError={(e) => {
             if (e.target.src !== '/placeholder.jpg') {
               e.target.src = '/placeholder.jpg';
-
-              console.log('🖼️ Image load error:', {
-
-                attempted_url: e.target.src,
-                artwork_id: artwork.artwork_id,
-              });
             }
           }}
         />
-      </Link>
+        {isSold && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            fontSize: '1.5em',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            zIndex: 10 // Ensure it's above the image
+          }}>
+            SOLD
+          </div>
+        )}
+      </div>
       {showDetails && (
-        <div
-          style={{
-            padding: '1rem',
-            backgroundColor: '#f4f1de',
-          }}
-        >
+        <div style={{ padding: '1rem', backgroundColor: '#f4f1de' }}>
           <h3
             style={{
-              fontSize: '18px',
-              fontWeight: '800',
-              color: '#ff6200',
-              marginBottom: '0.5rem',
+              fontSize: '1.125rem', // 18px
+              fontWeight: 'bold', // Tailwind 'font-bold'
+              color: '#ff6200', // Tailwind 'text-orange' or similar
+              marginBottom: '0.5rem', // Tailwind 'mb-2'
               textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
+            title={artwork.title}
           >
             {artwork.title}
           </h3>
           {artwork.price && (
-            <p
-              style={{
-                fontSize: '16px',
-                color: '#2b2d42',
-                fontWeight: '600',
-                marginBottom: '0.5rem',
-              }}
-            >
+            <p style={{ fontSize: '1rem', color: '#2b2d42', fontWeight: '600', marginBottom: '0.5rem' }}>
               {formatter.format(artwork.price)}
             </p>
           )}
-          <p
-            style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              marginBottom: '1rem',
-            }}
-          >
-            {artwork.artist || artwork.artist_name}
+          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+            By: {artwork.artist_name || 'Unknown Artist'}
           </p>
           {error && (
-            <p
-              style={{
-                fontSize: '14px',
-                color: '#d00000',
-                marginBottom: '0.5rem',
-              }}
-            >
-              {error}
+            <p style={{ fontSize: '0.875rem', color: '#d00000', marginBottom: '0.5rem' }}>
+              Error: {error}
             </p>
           )}
-          {(userRole === 'buyer' || userRole === 'artist') && (
-            <Link
-              to={`/artworks/${artwork.artwork_id}`}
-              style={{
-                display: 'inline-block',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#4a7289',
-                textDecoration: 'none',
-                marginBottom: '0.5rem',
-                transition: 'color 0.3s',
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
 
-                console.log('🔗 View Details clicked:', `/artworks/${artwork.artwork_id}`);
-
-              }}
-              onMouseOver={(e) => (e.target.style.color = '#ff6200')}
-              onMouseOut={(e) => (e.target.style.color = '#4a7289')}
-            >
-              View Details
-            </Link>
-          )}
-
-          {userRole === 'artist' && (
-            <div style={{ marginTop: '0.5rem' }}>
+          {/* Artist's view: Edit/Delete buttons */}
+          {userRole === 'artist' && artwork.artist_keycloak_id === user?.keycloak_id && (
+            <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
               <button
                 onClick={handleEdit}
-                disabled={isLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: isLoading ? '#6b7280' : '#4a7289',
-                  color: '#f4f1de',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  marginRight: '0.5rem',
+                disabled={isLoading || isSold} // Disable if sold
+                style={{ /* your existing styles, ensure disabled styles are clear */
+                    padding: '0.5rem 1rem',
+                    backgroundColor: (isLoading || isSold) ? '#cccccc' : '#4a7289',
+                    color: '#f4f1de', border: 'none', borderRadius: '4px', 
+                    cursor: (isLoading || isSold) ? 'not-allowed' : 'pointer',
                 }}
               >
                 Edit
               </button>
               <button
-                onClick={handleDelete}
-                disabled={isLoading}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: isLoading ? '#6b7280' : '#d00000',
-                  color: '#f4f1de',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                }}
+                onClick={handleDeleteClick} // Use the new handler
+                disabled={isLoading || isSold} // Disable if sold
+                style={{ /* your existing styles, ensure disabled styles are clear */
+                    padding: '0.5rem 1rem',
+                    backgroundColor: (isLoading || isSold) ? '#cccccc' : '#d00000',
+                    color: '#f4f1de', border: 'none', borderRadius: '4px',
+                    cursor: (isLoading || isSold) ? 'not-allowed' : 'pointer',
+                 }}
               >
                 Delete
               </button>
             </div>
           )}
 
-          {userRole === 'buyer' && (
+          {/* Buyer's view: Message Artist button */}
+          {userRole === 'buyer' && !isSold && (
             <button
               onClick={startThread}
               disabled={isLoading}
               style={{
-                display: 'block',
-                width: '100%',
-                padding: '0.75rem',
+                display: 'block', width: '100%', padding: '0.75rem',
                 backgroundColor: isLoading ? '#6b7280' : '#ff6200',
-                color: '#f4f1de',
-                fontSize: '16px',
-                fontWeight: '600',
-                border: 'none',
-                borderRadius: '4px',
+                color: '#f4f1de', fontSize: '1rem', fontWeight: '600',
+                border: 'none', borderRadius: '4px',
                 cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.3s, transform 0.2s',
-              }}
-              onMouseOver={(e) => {
-                if (!isLoading) e.target.style.backgroundColor = '#e05500';
-              }}
-              onMouseOut={(e) => {
-                if (!isLoading) e.target.style.backgroundColor = '#ff6200';
-              }}
-              onMouseDown={(e) => {
-                if (!isLoading) e.target.style.transform = 'scale(0.98)';
-              }}
-              onMouseUp={(e) => {
-                if (!isLoading) e.target.style.transform = 'scale(1)';
+                transition: 'background-color 0.3s',
               }}
             >
-              {isLoading ? 'Starting...' : 'Message Artist'}
+              {isLoading ? 'Processing...' : 'Message Artist'}
             </button>
           )}
         </div>
