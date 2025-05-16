@@ -19,6 +19,7 @@ function Header() {
 
   const isLandingOrLoginPage = location.pathname === '/' || location.pathname === '/login-register';
 
+
   // Fetch notification counts for messages and orders
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -76,6 +77,8 @@ function Header() {
   const commonLinks = [
     { to: '/dashboard', icon: <Grid size={16} />, label: 'Dashboard' },
     { to: '/profile', icon: <UserCircle2 size={16} />, label: 'Profile' },
+
+
   ];
 
   const renderMenuItems = () => {
@@ -104,6 +107,7 @@ function Header() {
       if (user.role === 'buyer') {
         roleLinks = [
           ...commonLinks,
+
           {
             to: '/orders',
             icon: <ShoppingBag size={16} />,
@@ -116,6 +120,7 @@ function Header() {
             label: 'Messages',
             badge: notifications.messages > 0 ? notifications.messages : null,
           },
+
           { to: '/artworks', icon: <Search size={16} />, label: 'Search Artworks' },
           { to: '/settings', icon: <Settings size={16} />, label: 'Settings' },
         ];
@@ -123,6 +128,7 @@ function Header() {
         roleLinks = [
           ...commonLinks,
           { to: '/artworks', icon: <Palette size={16} />, label: 'My Artworks' },
+
           {
             to: '/messages',
             icon: <MessageSquare size={16} />,
@@ -136,6 +142,7 @@ function Header() {
             label: 'Orders',
             badge: notifications.orders > 0 ? notifications.orders : null,
           },
+
           { to: '/settings', icon: <Settings size={16} />, label: 'Settings' },
         ];
       } else if (user.role === 'admin') {
@@ -147,6 +154,7 @@ function Header() {
 
       return (
         <>
+
           {roleLinks.map(({ to, icon, label, badge }) => (
             <li key={to}>
               <Link to={to} onClick={toggleMenu}>
@@ -154,6 +162,7 @@ function Header() {
                 {badge && (
                   <span className="notification-badge">{badge}</span>
                 )}
+
               </Link>
             </li>
           ))}

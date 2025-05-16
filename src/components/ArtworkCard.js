@@ -27,18 +27,23 @@ function ArtworkCard({ artwork, showDetails = true, userRole, onDelete }) { // A
     if (isSold) return; // Don't start thread if sold
 
     console.log('💬 startThread triggered:', {
+
       artwork_id: artwork.artwork_id,
       user_id: user?.keycloak_id,
       token: token ? 'present' : 'missing',
     });
     if (!token || !user) {
+
       console.warn('❌ No token or user, redirecting to login');
+
       navigate('/login-register');
       return;
     }
     const artworkId = parseInt(artwork.artwork_id);
     if (isNaN(artworkId)) {
+
       console.error('❌ Invalid artwork_id:', artwork.artwork_id);
+
       setError('Invalid artwork ID.');
       return;
     }
@@ -50,11 +55,13 @@ function ArtworkCard({ artwork, showDetails = true, userRole, onDelete }) { // A
         { artworkId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       console.log('✅ Thread response:', res.data);
       const threadToNavigate = res.data.redirect ? res.data.thread.id : res.data.id;
       navigate(`/messages/${threadToNavigate}`);
     } catch (err) {
       console.error('❌ Start thread error:', err.response?.data || err.message);
+      
       if (err.response?.status === 409) {
         setError('A conversation for this artwork already exists. Check your messages!');
       } else if (err.response?.status === 429) {

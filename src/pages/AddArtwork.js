@@ -105,7 +105,7 @@ function AddArtwork() {
           background-color: #fff;
           cursor: pointer;
         }
-        .select:hover {
+        .select:hover {=
           border-color: #ff6200;
         }
         .button {
