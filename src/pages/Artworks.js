@@ -61,7 +61,6 @@ function Artworks() {
         setLoading(false);
         return;
       }
-
       if (initialArtistId) {
         params.append('artist', initialArtistId);
       } else if (user.role === 'artist' && user.keycloak_id) {
@@ -143,7 +142,6 @@ function Artworks() {
       <h1 className="text-4xl font-bold text-teal-600 mb-6 text-center">
         {user?.role === 'artist' && !initialArtistId ? 'My Artworks' : 'Browse Artworks'}
       </h1>
-
       <div id="search-section" className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center">
         <form onSubmit={handleSearch} className="search-bar flex gap-2">
           <input

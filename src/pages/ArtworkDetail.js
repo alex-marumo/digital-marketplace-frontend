@@ -92,6 +92,24 @@ function ArtworkDetail() {
     fetchReviews();
   }, [id]);
 
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        console.log('[REVIEWS FETCH DEBUG] Fetching reviews for artwork:', id);
+        const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
+        setReviews(response.data.slice(0, 3));
+        if (response.data.length) {
+          const total = response.data.reduce((sum, r) => sum + r.rating, 0);
+          setAverageRating((total / response.data.length).toFixed(1));
+        }
+        console.log('[REVIEWS FETCH SUCCESS] Reviews loaded:', response.data.length);
+      } catch (err) {
+        console.error('[REVIEWS FETCH ERROR]:', err.response?.data || err.message);
+      }
+    };
+    fetchReviews();
+  }, [id]);
+
   const handlePurchase = async () => {
     if (!artwork || artwork.status === 'sold') {
       alert('This artwork is not available for purchase.');
@@ -131,6 +149,7 @@ function ArtworkDetail() {
       return;
     }
     try {
+      console.log('[REVIEW SUBMIT DEBUG] Submitting review:', { artworkId: id, rating, comment: review });
       await axios.post(
         `${API_BASE_URL}/api/reviews`,
         { artwork_id: parseInt(id), rating: Number(rating), comment: review, user_id: user?.keycloak_id },
@@ -283,6 +302,7 @@ function ArtworkDetail() {
       <button
         onClick={() => navigate(-1)}
         style={{ display: 'block', margin: '2rem auto', fontSize: '1rem', color: '#4a7289', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
+
       >
         Back
       </button>

@@ -91,7 +91,6 @@ function ArtworkCard({ artwork, showDetails = true, userRole, onDelete }) { // A
     ? `${API_BASE_URL}${artwork.image_url}`
     : '/placeholder.jpg';
 
-
   const handleCardClick = (e) => {
     if (isSold) {
       e.preventDefault(); // Prevent navigation if sold
@@ -111,6 +110,57 @@ function ArtworkCard({ artwork, showDetails = true, userRole, onDelete }) { // A
       onDelete(artwork.artwork_id);
     }
   };
+
+  // Handler for Edit button
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    console.log('✏️ Edit clicked:', { id: artwork.artwork_id, token: token ? 'present' : 'missing' });
+    navigate(`/edit-artwork/${artwork.artwork_id}`);
+  };
+
+  // Handler for Delete button
+  const handleDelete = async (e) => {
+  e.stopPropagation();
+  const artworkId = parseInt(artwork.artwork_id, 10);
+  console.log('🗑️ Delete clicked:', { id: artworkId, image_url: artwork.image_url, token: token ? 'present' : 'missing', user });
+  if (!token) {
+    console.error('❌ No token, redirecting to login');
+    setError('Please log in to delete artwork.');
+    navigate('/login-register');
+    return;
+  }
+  if (isNaN(artworkId)) {
+    console.error('❌ Invalid artwork_id:', artwork.artwork_id);
+    setError('Invalid artwork ID.');
+    return;
+  }
+  if (!user || !['artist', 'admin'].includes(user.role)) {
+    console.error('❌ User lacks permission:', { user });
+    setError('Only artists or admins can delete artworks.');
+    return;
+  }
+  if (window.confirm('Are you sure you want to delete this artwork?')) {
+    setIsLoading(true);
+    setError('');
+    try {
+      await axios.delete(`${API_BASE_URL}/api/artworks/${artworkId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log('✅ Artwork deleted:', artworkId);
+      alert('Artwork deleted! 🎉');
+      navigate(0); // Reload page to refresh artwork list
+    } catch (err) {
+      console.error('❌ Delete error:', {
+        status: err.response?.status,
+        message: err.response?.data?.error || err.message,
+        artworkId,
+      });
+      setError(err.response?.data?.error || 'Failed to delete artwork.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+};
 
 
   return (
