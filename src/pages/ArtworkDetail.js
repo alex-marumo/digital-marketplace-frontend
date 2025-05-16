@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
@@ -8,7 +8,7 @@ function ArtworkDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // Get location object
+  const location = useLocation();
   const [artwork, setArtwork] = useState(null);
   const [review, setReview] = useState('');
   const [rating, setRating] = useState(5);
@@ -26,12 +26,10 @@ function ArtworkDetail() {
       return;
     }
     if (!token) {
-      // setError('Please log in to view artwork'); // Can be handled by PrivateRoute
       setLoading(false);
-      // navigate('/login-register'); // PrivateRoute should handle this
       return;
     }
-    setLoading(true); // Set loading true at the start of fetch attempt
+    setLoading(true);
     try {
       console.log('[ARTWORK DETAIL FETCH DEBUG] Fetching artwork:', { artworkId: id, locationKey: location.key });
       const res = await axios.get(`${API_BASE_URL}/api/artworks/${id}`, {
@@ -42,14 +40,13 @@ function ArtworkDetail() {
       if (!artworkData.image_url) {
         artworkData.image_url = '/placeholder.jpg';
       }
-      // Ensure status is part of the state
       setArtwork({ ...artworkData, status: artworkData.status || 'available' });
       setLoading(false);
 
       const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
-      if (!viewed.some(item => item.artwork_id === id)) { // Check if object with id exists
-          viewed.push({ artwork_id: id, title: artworkData.title, image_url: artworkData.image_url }); // Store more info
-          localStorage.setItem('recentlyViewed', JSON.stringify(viewed.slice(-5)));
+      if (!viewed.some(item => item.artwork_id === id)) {
+        viewed.push({ artwork_id: id, title: artworkData.title, image_url: artworkData.image_url });
+        localStorage.setItem('recentlyViewed', JSON.stringify(viewed.slice(-5)));
       }
       console.log('[ARTWORK DETAIL FETCH SUCCESS] Artwork loaded:', artworkData);
     } catch (err) {
@@ -67,13 +64,12 @@ function ArtworkDetail() {
         err.response?.status === 404 ? 'Artwork not found.' : 'Failed to load artwork details.'
       );
       setLoading(false);
-      // if (err.response?.status === 401) navigate('/login-register'); // Let PrivateRoute handle this
     }
   };
 
   useEffect(() => {
     fetchArtworkDetails();
-  }, [id, token, navigate, location.key]); // Add location.key to refetch if query params change or on navigation
+  }, [id, token, navigate, location.key]);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -81,7 +77,7 @@ function ArtworkDetail() {
       try {
         console.log('[REVIEWS FETCH DEBUG] Fetching reviews for artwork:', id);
         const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
-        setReviews(response.data || []); // Ensure it's an array
+        setReviews(response.data || []);
         if (response.data && response.data.length > 0) {
           const total = response.data.reduce((sum, r) => sum + r.rating, 0);
           setAverageRating((total / response.data.length).toFixed(1));
@@ -91,65 +87,44 @@ function ArtworkDetail() {
         console.log('[REVIEWS FETCH SUCCESS] Reviews loaded:', response.data?.length || 0);
       } catch (err) {
         console.error('[REVIEWS FETCH ERROR]:', err.response?.data || err.message);
-        // Don't set main page error for reviews failure
       }
     };
     fetchReviews();
   }, [id]);
 
   const handlePurchase = async () => {
-    if (!artwork || artwork.status === 'sold') { // Double check status before purchase
+    if (!artwork || artwork.status === 'sold') {
       alert('This artwork is not available for purchase.');
       return;
     }
-    // ... (rest of your handlePurchase logic, it seems fine) ...
     if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber.trim()) {
-        alert('Please enter a phone number for mobile money payments.');
-        return;
+      alert('Please enter a phone number for mobile money payments.');
+      return;
     }
     if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !/^\+267\d{8}$/.test(phoneNumber)) {
-        alert('Please enter a valid Botswana phone number (e.g., +26712345678).');
-        return;
+      alert('Please enter a valid Botswana phone number (e.g., +26712345678).');
+      return;
     }
 
     try {
-        setLoading(true); // Indicate processing
-        const orderRes = await axios.post(
-            `${API_BASE_URL}/api/orders`,
-            { artworkId: parseInt(id), paymentMethod },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const paymentRes = await axios.post(
-            `${API_BASE_URL}/api/payments`,
-            {
-                order_id: orderRes.data.order_id,
-                amount: parseFloat(artwork.price), // Ensure price is a number
-                payment_method: paymentMethod,
-                phone_number: phoneNumber || undefined // Send undefined if empty
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setLoading(false);
-
-        if (paymentRes.data.paymentUrl) {
-            if (paymentMethod === 'paypal') {
-                window.location.href = paymentRes.data.paymentUrl; // PayPal handles redirect
-            } else {
-                // For mock payments, redirect to the mock page
-                window.location.href = `${API_BASE_URL}${paymentRes.data.paymentUrl}`; // Assuming backend serves it
-            }
-        } else {
-             alert('Payment initiated, but an issue occurred with the payment provider redirect.');
-        }
+      setLoading(true);
+      console.log('[ARTWORK PURCHASE DEBUG] Creating order:', { artworkId: id, paymentMethod, phoneNumber });
+      const orderRes = await axios.post(
+        `${API_BASE_URL}/api/orders`,
+        { artworkId: parseInt(id), paymentMethod, phoneNumber: phoneNumber || undefined },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log('[ARTWORK PURCHASE SUCCESS] Order created:', orderRes.data);
+      navigate('/orders');
     } catch (err) {
-        setLoading(false);
-        console.error('[ARTWORK PURCHASE ERROR]:', err.response?.data || err.message);
-        alert(`Failed to process purchase: ${err.response?.data?.error || 'An unexpected error occurred.'}`);
+      console.error('[ARTWORK PURCHASE ERROR]:', err.response?.data || err.message);
+      alert(`Failed to create order: ${err.response?.data?.error || 'An unexpected error occurred.'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleReviewSubmit = async (e) => { // Renamed from handleReview
+  const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!review.trim() || !rating) {
       alert('Please provide both a rating and a comment for your review.');
@@ -164,7 +139,6 @@ function ArtworkDetail() {
       setReview('');
       setRating(5);
       alert('Review submitted successfully!');
-      // Re-fetch reviews to show the new one
       const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
       setReviews(response.data || []);
       if (response.data && response.data.length > 0) {
@@ -221,7 +195,6 @@ function ArtworkDetail() {
         </p>
       )}
 
-      {/* Purchase Section - only if user is buyer AND artwork is NOT sold */}
       {user?.role === 'buyer' && !isSold && (
         <div style={{ maxWidth: '500px', margin: '2rem auto', padding: '1.5rem', border: '1px solid #ff6200', borderRadius: '8px', backgroundColor: '#fff9f0' }}>
           <h2 style={{textAlign: 'center', color: '#ff6200', marginBottom: '1rem'}}>Purchase This Artwork</h2>
@@ -241,7 +214,7 @@ function ArtworkDetail() {
             <label style={{ display: 'block', margin: '1rem 0', color: '#2b2d42', fontWeight: '600' }}>
               Phone Number (e.g., +26771234567):
               <input
-                type="tel" // Changed to tel for better mobile experience
+                type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+26771234567"
@@ -251,7 +224,7 @@ function ArtworkDetail() {
           )}
           <button
             onClick={handlePurchase}
-            disabled={loading} // Disable button while processing purchase
+            disabled={loading}
             style={{ display: 'block', width: '100%', margin: '1rem auto 0', padding: '0.75rem 2rem', backgroundColor: loading ? '#cccccc' : '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: loading ? 'not-allowed' : 'pointer', transition: 'background-color 0.3s' }}
           >
             {loading ? 'Processing...' : 'Order Now'}
@@ -259,31 +232,29 @@ function ArtworkDetail() {
         </div>
       )}
 
-      {/* Reviews Section */}
       <div style={{ marginTop: '2rem', maxWidth: '700px', margin: '2rem auto' }}>
-          <h3 style={{ textAlign: 'center', color: '#2b2d42', fontSize: '1.5rem', marginBottom: '1rem' }}>Recent Reviews</h3>
-          {reviews.length > 0 ? (
-            reviews.map((r) => ( // Changed index i to r.review_id if available, else keep i for now
-              <div key={r.review_id || r.id} style={{ background: '#fff', padding: '1rem', borderRadius: '4px', margin: '0.5rem 0', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-                <p style={{ fontWeight: '600' }}>Rating: {'⭐'.repeat(r.rating)}</p>
-                <p style={{fontStyle:'italic', color: '#555'}}>By: {r.user_name || 'Anonymous'}</p> {/* Assuming user_name is sent */}
-                <p style={{marginTop: '0.5rem'}}>{r.comment}</p>
-                <p style={{fontSize: '0.8em', color: '#777', textAlign: 'right'}}>{new Date(r.created_at).toLocaleDateString()}</p>
-              </div>
-            ))
-          ) : (
-            <p style={{ textAlign: 'center', color: '#6b7280' }}>No reviews yet for this artwork.</p>
-          )}
+        <h3 style={{ textAlign: 'center', color: '#2b2d42', fontSize: '1.5rem', marginBottom: '1rem' }}>Recent Reviews</h3>
+        {reviews.length > 0 ? (
+          reviews.map((r) => (
+            <div key={r.review_id || r.id} style={{ background: '#fff', padding: '1rem', borderRadius: '4px', margin: '0.5rem 0', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+              <p style={{ fontWeight: '600' }}>Rating: {'⭐'.repeat(r.rating)}</p>
+              <p style={{fontStyle:'italic', color: '#555'}}>By: {r.user_name || 'Anonymous'}</p>
+              <p style={{marginTop: '0.5rem'}}>{r.comment}</p>
+              <p style={{fontSize: '0.8em', color: '#777', textAlign: 'right'}}>{new Date(r.created_at).toLocaleDateString()}</p>
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', color: '#6b7280' }}>No reviews yet for this artwork.</p>
+        )}
       </div>
       
-      {/* Submit Review Section - only if user is buyer */}
-      {user?.role === 'buyer' && ( // Simplified condition, can be refined if they should only review after purchase
+      {user?.role === 'buyer' && (
         <form
           onSubmit={handleReviewSubmit}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', maxWidth: '500px', margin: '2rem auto' }}
         >
           <h3 style={{color: '#ff6200', fontSize: '1.2rem'}}>Leave a Review</h3>
-          <textarea // Changed input to textarea for review comment
+          <textarea
             value={review}
             onChange={(e) => setReview(e.target.value)}
             placeholder="Share your thoughts on this artwork..."
@@ -310,7 +281,7 @@ function ArtworkDetail() {
       )}
 
       <button
-        onClick={() => navigate(-1)} // Go back to previous page
+        onClick={() => navigate(-1)}
         style={{ display: 'block', margin: '2rem auto', fontSize: '1rem', color: '#4a7289', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
       >
         Back
