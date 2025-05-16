@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom'; // Import useLocation
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
@@ -8,6 +8,7 @@ function ArtworkDetail() {
   const { id } = useParams();
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Get location object
   const [artwork, setArtwork] = useState(null);
   const [review, setReview] = useState('');
   const [rating, setRating] = useState(5);
@@ -18,235 +19,218 @@ function ArtworkDetail() {
   const [paymentMethod, setPaymentMethod] = useState('paypal');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  useEffect(() => {
-    const fetchArtwork = async (retryCount = 0) => {
-      if (isNaN(id)) {
-        setError('Invalid artwork ID');
-        setLoading(false);
-        return;
+  const fetchArtworkDetails = async (retryCount = 0) => {
+    if (isNaN(id)) {
+      setError('Invalid artwork ID');
+      setLoading(false);
+      return;
+    }
+    if (!token) {
+      // setError('Please log in to view artwork'); // Can be handled by PrivateRoute
+      setLoading(false);
+      // navigate('/login-register'); // PrivateRoute should handle this
+      return;
+    }
+    setLoading(true); // Set loading true at the start of fetch attempt
+    try {
+      console.log('[ARTWORK DETAIL FETCH DEBUG] Fetching artwork:', { artworkId: id, locationKey: location.key });
+      const res = await axios.get(`${API_BASE_URL}/api/artworks/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      const artworkData = res.data;
+      if (!artworkData.image_url) {
+        artworkData.image_url = '/placeholder.jpg';
       }
-      if (!token) {
-        setError('Please log in to view artwork');
-        setLoading(false);
-        navigate('/login');
-        return;
-      }
-      try {
-        console.log('[ARTWORK FETCH DEBUG] Fetching artwork:', { artworkId: id });
-        const res = await axios.get(`${API_BASE_URL}/api/artworks/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.data.image_url) {
-          res.data.image_url = '/placeholder.jpg';
-        }
-        setArtwork(res.data);
-        setLoading(false);
+      // Ensure status is part of the state
+      setArtwork({ ...artworkData, status: artworkData.status || 'available' });
+      setLoading(false);
 
-        const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
-        if (!viewed.includes(id)) {
-          viewed.push(id);
+      const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+      if (!viewed.some(item => item.artwork_id === id)) { // Check if object with id exists
+          viewed.push({ artwork_id: id, title: artworkData.title, image_url: artworkData.image_url }); // Store more info
           localStorage.setItem('recentlyViewed', JSON.stringify(viewed.slice(-5)));
-        }
-        console.log('[ARTWORK FETCH SUCCESS] Artwork loaded:', res.data);
-      } catch (err) {
-        console.error('[ARTWORK FETCH ERROR]:', {
-          status: err.response?.status,
-          message: err.response?.data?.error,
-          details: err.response?.data?.details,
-        });
-        if (retryCount < 2 && err.response?.status === 503) {
-          setTimeout(() => fetchArtwork(retryCount + 1), 1000);
-          return;
-        }
-        setError(
-          err.response?.status === 401 ? 'Please log in to view artwork' :
-          err.response?.status === 404 ? 'Artwork not found' : 'Failed to load artwork'
-        );
-        setLoading(false);
-        if (err.response?.status === 401) navigate('/login');
       }
-    };
-    fetchArtwork();
-  }, [id, token, navigate]);
+      console.log('[ARTWORK DETAIL FETCH SUCCESS] Artwork loaded:', artworkData);
+    } catch (err) {
+      console.error('[ARTWORK DETAIL FETCH ERROR]:', {
+        status: err.response?.status,
+        message: err.response?.data?.error,
+        details: err.response?.data?.details,
+      });
+      if (retryCount < 2 && err.response?.status === 503) {
+        setTimeout(() => fetchArtworkDetails(retryCount + 1), 1000);
+        return;
+      }
+      setError(
+        err.response?.status === 401 ? 'Authentication error. Please log in again.' :
+        err.response?.status === 404 ? 'Artwork not found.' : 'Failed to load artwork details.'
+      );
+      setLoading(false);
+      // if (err.response?.status === 401) navigate('/login-register'); // Let PrivateRoute handle this
+    }
+  };
+
+  useEffect(() => {
+    fetchArtworkDetails();
+  }, [id, token, navigate, location.key]); // Add location.key to refetch if query params change or on navigation
 
   useEffect(() => {
     const fetchReviews = async () => {
+      if (!id || isNaN(id)) return;
       try {
         console.log('[REVIEWS FETCH DEBUG] Fetching reviews for artwork:', id);
         const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
-        setReviews(response.data.slice(0, 3));
-        if (response.data.length) {
+        setReviews(response.data || []); // Ensure it's an array
+        if (response.data && response.data.length > 0) {
           const total = response.data.reduce((sum, r) => sum + r.rating, 0);
           setAverageRating((total / response.data.length).toFixed(1));
+        } else {
+          setAverageRating(null);
         }
-        console.log('[REVIEWS FETCH SUCCESS] Reviews loaded:', response.data.length);
+        console.log('[REVIEWS FETCH SUCCESS] Reviews loaded:', response.data?.length || 0);
       } catch (err) {
         console.error('[REVIEWS FETCH ERROR]:', err.response?.data || err.message);
+        // Don't set main page error for reviews failure
       }
     };
     fetchReviews();
   }, [id]);
 
   const handlePurchase = async () => {
-  if (!artwork) {
-    console.log('[ARTWORK PURCHASE ERROR] No artwork loaded');
-    alert('Artwork not loaded. Please try refreshing the page.');
-    return;
-  }
-  if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber.trim()) {
-    console.log('[ARTWORK PURCHASE ERROR] Missing phone number for mobile money');
-    alert('Please enter a phone number for mobile money payments.');
-    return;
-  }
-  if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !/^\+267\d{8}$/.test(phoneNumber)) {
-  alert('Please enter a valid Botswana phone number (e.g., +26712345678).');
-  return;
-}
-  if (!id || isNaN(id)) {
-    console.log('[ARTWORK PURCHASE ERROR] Invalid artwork ID:', id);
-    alert('Invalid artwork ID. Please try again.');
-    return;
-  }
-
-  try {
-    console.log('[ARTWORK PURCHASE DEBUG] Creating order:', { artworkId: id, paymentMethod, phoneNumber });
-    // Step 1: Create order
-    const orderRes = await axios.post(
-      `${API_BASE_URL}/api/orders`,
-      { artworkId: parseInt(id), paymentMethod }, // Match backend's camelCase
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log('[ARTWORK PURCHASE ORDER SUCCESS] Order created:', orderRes.data);
-
-    // Step 2: Initiate payment
-    const paymentRes = await axios.post(
-      `${API_BASE_URL}/api/payments`,
-      {
-        order_id: orderRes.data.order_id,
-        amount: artwork.price,
-        payment_method: paymentMethod,
-        phone_number: phoneNumber
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log('[ARTWORK PURCHASE PAYMENT SUCCESS] Payment initiated:', paymentRes.data);
-
-    if (paymentRes.data.paymentUrl) {
-      if (paymentMethod === 'paypal') {
-        console.log('[ARTWORK PURCHASE REDIRECT] Skipping redirect — navigating to Orders');
-        navigate('/orders'); // ✅ Route to orders page
-        } else {
-        console.log('[ARTWORK PURCHASE USSD] Showing USSD instructions:', paymentRes.data.paymentUrl);
-        alert(`Please follow these instructions to complete your payment: ${paymentRes.data.paymentUrl}`);
-        window.location.href = paymentRes.data.paymentUrl; 
-      }
+    if (!artwork || artwork.status === 'sold') { // Double check status before purchase
+      alert('This artwork is not available for purchase.');
+      return;
     }
-  } catch (err) {
-    console.error('[ARTWORK PURCHASE ERROR]:', {
-      status: err.response?.status,
-      message: err.response?.data?.error,
-      details: err.response?.data?.details,
-    });
-    alert(`Failed to process purchase: ${err.response?.data?.error || 'Unknown error'}. Please try again.`);
-  }
-};
+    // ... (rest of your handlePurchase logic, it seems fine) ...
+    if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !phoneNumber.trim()) {
+        alert('Please enter a phone number for mobile money payments.');
+        return;
+    }
+    if ((paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && !/^\+267\d{8}$/.test(phoneNumber)) {
+        alert('Please enter a valid Botswana phone number (e.g., +26712345678).');
+        return;
+    }
 
-  const handleReview = async (e) => {
+    try {
+        setLoading(true); // Indicate processing
+        const orderRes = await axios.post(
+            `${API_BASE_URL}/api/orders`,
+            { artworkId: parseInt(id), paymentMethod },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const paymentRes = await axios.post(
+            `${API_BASE_URL}/api/payments`,
+            {
+                order_id: orderRes.data.order_id,
+                amount: parseFloat(artwork.price), // Ensure price is a number
+                payment_method: paymentMethod,
+                phone_number: phoneNumber || undefined // Send undefined if empty
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setLoading(false);
+
+        if (paymentRes.data.paymentUrl) {
+            if (paymentMethod === 'paypal') {
+                window.location.href = paymentRes.data.paymentUrl; // PayPal handles redirect
+            } else {
+                // For mock payments, redirect to the mock page
+                window.location.href = `${API_BASE_URL}${paymentRes.data.paymentUrl}`; // Assuming backend serves it
+            }
+        } else {
+             alert('Payment initiated, but an issue occurred with the payment provider redirect.');
+        }
+    } catch (err) {
+        setLoading(false);
+        console.error('[ARTWORK PURCHASE ERROR]:', err.response?.data || err.message);
+        alert(`Failed to process purchase: ${err.response?.data?.error || 'An unexpected error occurred.'}`);
+    }
+  };
+
+  const handleReviewSubmit = async (e) => { // Renamed from handleReview
     e.preventDefault();
-    if (!review.trim()) {
-      alert('Review cannot be empty');
-      console.log('[REVIEW SUBMIT ERROR] Empty review');
+    if (!review.trim() || !rating) {
+      alert('Please provide both a rating and a comment for your review.');
       return;
     }
     try {
-      console.log('[REVIEW SUBMIT DEBUG] Submitting review:', { artworkId: id, rating, comment: review });
       await axios.post(
         `${API_BASE_URL}/api/reviews`,
-        { artwork_id: id, rating, comment: review, user_id: user?.keycloak_id },
+        { artwork_id: parseInt(id), rating: Number(rating), comment: review, user_id: user?.keycloak_id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setReview('');
       setRating(5);
-      alert('Review submitted!');
-      console.log('[REVIEW SUBMIT SUCCESS] Review submitted');
-      // Refresh reviews
+      alert('Review submitted successfully!');
+      // Re-fetch reviews to show the new one
       const response = await axios.get(`${API_BASE_URL}/api/reviews/${id}`);
-      setReviews(response.data.slice(0, 3));
-      if (response.data.length) {
+      setReviews(response.data || []);
+      if (response.data && response.data.length > 0) {
         const total = response.data.reduce((sum, r) => sum + r.rating, 0);
         setAverageRating((total / response.data.length).toFixed(1));
+      } else {
+        setAverageRating(null);
       }
     } catch (err) {
-      console.error('[REVIEW SUBMIT ERROR]:', err.response?.data || err.message);
-      alert('Failed to submit review. Please try again.');
+      alert(`Failed to submit review: ${err.response?.data?.error || 'Please try again.'}`);
     }
   };
 
-  if (loading)
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f4f1de', fontSize: '1.5rem', color: '#2b2d42', fontWeight: '600' }}>
-        Loading...
-      </div>
-    );
-  if (error)
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f4f1de', fontSize: '1.5rem', color: '#d00000', fontWeight: '600' }}>
-        {error}
-      </div>
-    );
-  if (!artwork)
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f4f1de', fontSize: '1.5rem', color: '#2b2d42', fontWeight: '600' }}>
-        Artwork not found
-      </div>
-    );
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.5rem' }}>Loading artwork details...</div>;
+  if (error) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'red', fontSize: '1.5rem' }}>Error: {error}</div>;
+  if (!artwork) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '1.5rem' }}>Artwork not found.</div>;
+
+  const isSold = artwork.status === 'sold';
+  const imageFullUrl = artwork.image_url?.startsWith('http') || artwork.image_url?.startsWith('/assets/')
+    ? artwork.image_url
+    : artwork.image_url
+    ? `${API_BASE_URL}${artwork.image_url}`
+    : '/placeholder.jpg';
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem', backgroundColor: '#f4f1de', minHeight: '100vh', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '8px' }}>
       <h1 style={{ fontSize: '2.25rem', fontWeight: '800', color: '#ff6200', marginBottom: '1.5rem', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-        {artwork.title}
+        {artwork.title} {isSold && <span style={{color: 'red', fontSize: '0.8em', fontWeight: 'bold'}}>(SOLD)</span>}
       </h1>
       <img
-        src={artwork.image_url.startsWith('http') ? artwork.image_url : `${API_BASE_URL}${artwork.image_url}`}
-        alt={artwork.title || 'Artwork'}
-        style={{ width: '100%', maxWidth: '600px', display: 'block', margin: '0 auto 1.5rem', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', objectFit: 'cover', maxHeight: '400px', border: '2px solid #2b2d42' }}
+        src={imageFullUrl}
+        alt={artwork.title || 'Artwork Image'}
+        style={{ width: '100%', maxWidth: '600px', display: 'block', margin: '0 auto 1.5rem', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', objectFit: 'contain', maxHeight: '500px', border: '2px solid #2b2d42' }}
         onError={(e) => { e.target.src = '/placeholder.jpg'; }}
       />
       <p style={{ color: '#2b2d42', fontSize: '1.125rem', lineHeight: '1.6', marginBottom: '1rem', textAlign: 'center', maxWidth: '800px', marginLeft: 'auto', marginRight: 'auto' }}>
-        {artwork.description || 'No description available'}
+        {artwork.description || 'No description available.'}
       </p>
       {averageRating && (
         <p style={{ textAlign: 'center', color: '#ff6200', fontWeight: '600', fontSize: '1.2rem' }}>
-          ⭐ {averageRating} out of 5
+          ⭐ Average Rating: {averageRating} / 5
         </p>
-      )}
-      {reviews.length > 0 ? (
-        <div style={{ marginTop: '1rem' }}>
-          <h3 style={{ textAlign: 'center', color: '#2b2d42' }}>Recent Reviews</h3>
-          {reviews.map((r, i) => (
-            <div key={i} style={{ background: '#fff', padding: '1rem', borderRadius: '4px', margin: '0.5rem auto', maxWidth: '600px', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-              <p style={{ fontWeight: '600' }}>Rating: {r.rating} ⭐</p>
-              <p>{r.comment}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p style={{ textAlign: 'center', color: '#6b7280' }}>No reviews yet.</p>
       )}
       <p style={{ color: '#2b2d42', fontSize: '1.25rem', fontWeight: '700', marginBottom: '1rem', textAlign: 'center' }}>
         {new Intl.NumberFormat('en-BW', { style: 'currency', currency: 'BWP' }).format(artwork.price)}
       </p>
       <p style={{ color: '#6b7280', fontSize: '1rem', marginBottom: '2rem', textAlign: 'center', fontStyle: 'italic' }}>
-        By {artwork.artist_name || 'Unknown Artist'}
+        Artist: {artwork.artist_name || 'Unknown Artist'}
       </p>
-      {user?.role === 'buyer' && (
-        <div style={{ maxWidth: '500px', margin: '0 auto 2rem', textAlign: 'center' }}>
+      
+      {isSold && (
+        <p style={{fontSize: '1.5em', color: 'red', fontWeight: 'bold', textAlign: 'center', padding: '1em', border: '2px dashed red', borderRadius: '5px', backgroundColor: 'rgba(255,0,0,0.05)'}}>
+          This artwork has been sold.
+        </p>
+      )}
+
+      {/* Purchase Section - only if user is buyer AND artwork is NOT sold */}
+      {user?.role === 'buyer' && !isSold && (
+        <div style={{ maxWidth: '500px', margin: '2rem auto', padding: '1.5rem', border: '1px solid #ff6200', borderRadius: '8px', backgroundColor: '#fff9f0' }}>
+          <h2 style={{textAlign: 'center', color: '#ff6200', marginBottom: '1rem'}}>Purchase This Artwork</h2>
           <label style={{ display: 'block', marginBottom: '0.5rem', color: '#2b2d42', fontWeight: '600' }}>
             Payment Method:
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', fontSize: '1rem', border: '2px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
+              style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', fontSize: '1rem', border: '1px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
             >
               <option value="paypal">PayPal</option>
               <option value="orange_money">Orange Money</option>
@@ -254,71 +238,82 @@ function ArtworkDetail() {
             </select>
           </label>
           {(paymentMethod === 'orange_money' || paymentMethod === 'myzaka') && (
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#2b2d42', fontWeight: '600' }}>
-              Phone Number:
+            <label style={{ display: 'block', margin: '1rem 0', color: '#2b2d42', fontWeight: '600' }}>
+              Phone Number (e.g., +26771234567):
               <input
-                type="text"
+                type="tel" // Changed to tel for better mobile experience
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter phone number (e.g., +26712345678)"
-                style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', fontSize: '1rem', border: '2px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
+                placeholder="+26771234567"
+                style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem', fontSize: '1rem', border: '1px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
               />
             </label>
           )}
           <button
             onClick={handlePurchase}
-            style={{ display: 'block', margin: '1rem auto 0', padding: '0.75rem 2rem', backgroundColor: '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.2s' }}
-            onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
-            onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
-            onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
-            onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
+            disabled={loading} // Disable button while processing purchase
+            style={{ display: 'block', width: '100%', margin: '1rem auto 0', padding: '0.75rem 2rem', backgroundColor: loading ? '#cccccc' : '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: loading ? 'not-allowed' : 'pointer', transition: 'background-color 0.3s' }}
           >
-            Order Now
+            {loading ? 'Processing...' : 'Order Now'}
           </button>
         </div>
       )}
-      {user?.role === 'buyer' && (
+
+      {/* Reviews Section */}
+      <div style={{ marginTop: '2rem', maxWidth: '700px', margin: '2rem auto' }}>
+          <h3 style={{ textAlign: 'center', color: '#2b2d42', fontSize: '1.5rem', marginBottom: '1rem' }}>Recent Reviews</h3>
+          {reviews.length > 0 ? (
+            reviews.map((r) => ( // Changed index i to r.review_id if available, else keep i for now
+              <div key={r.review_id || r.id} style={{ background: '#fff', padding: '1rem', borderRadius: '4px', margin: '0.5rem 0', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+                <p style={{ fontWeight: '600' }}>Rating: {'⭐'.repeat(r.rating)}</p>
+                <p style={{fontStyle:'italic', color: '#555'}}>By: {r.user_name || 'Anonymous'}</p> {/* Assuming user_name is sent */}
+                <p style={{marginTop: '0.5rem'}}>{r.comment}</p>
+                <p style={{fontSize: '0.8em', color: '#777', textAlign: 'right'}}>{new Date(r.created_at).toLocaleDateString()}</p>
+              </div>
+            ))
+          ) : (
+            <p style={{ textAlign: 'center', color: '#6b7280' }}>No reviews yet for this artwork.</p>
+          )}
+      </div>
+      
+      {/* Submit Review Section - only if user is buyer */}
+      {user?.role === 'buyer' && ( // Simplified condition, can be refined if they should only review after purchase
         <form
-          onSubmit={handleReview}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', maxWidth: '500px', margin: '0 auto 2rem' }}
+          onSubmit={handleReviewSubmit}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', maxWidth: '500px', margin: '2rem auto' }}
         >
-          <input
-            type="text"
+          <h3 style={{color: '#ff6200', fontSize: '1.2rem'}}>Leave a Review</h3>
+          <textarea // Changed input to textarea for review comment
             value={review}
             onChange={(e) => setReview(e.target.value)}
-            placeholder="Drop a fire review 🔥"
-            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', border: '2px solid #ff6200', borderRadius: '4px', outline: 'none', backgroundColor: '#f4f1de', color: '#2b2d42', transition: 'border-color 0.3s' }}
-            onFocus={(e) => (e.target.style.borderColor = '#e05500')}
-            onBlur={(e) => (e.target.style.borderColor = '#ff6200')}
+            placeholder="Share your thoughts on this artwork..."
+            rows="4"
+            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', border: '1px solid #ff6200', borderRadius: '4px', outline: 'none', backgroundColor: '#fff9f0', color: '#2b2d42' }}
           />
           <select
             value={rating}
             onChange={(e) => setRating(Number(e.target.value))}
-            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', border: '2px solid #ff6200', borderRadius: '4px', backgroundColor: '#f4f1de', color: '#2b2d42' }}
+            style={{ width: '100%', padding: '0.75rem', fontSize: '1rem', border: '1px solid #ff6200', borderRadius: '4px', backgroundColor: '#fff9f0', color: '#2b2d42' }}
           >
-            {[1, 2, 3, 4, 5].map(r => (
+            <option value="">Select Rating</option>
+            {[5, 4, 3, 2, 1].map(r => (
               <option key={r} value={r}>{r} Star{r > 1 && 's'}</option>
             ))}
           </select>
           <button
             type="submit"
-            style={{ padding: '0.75rem 2rem', backgroundColor: '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.2s' }}
-            onMouseOver={(e) => (e.target.style.backgroundColor = '#e05500')}
-            onMouseOut={(e) => (e.target.style.backgroundColor = '#ff6200')}
-            onMouseDown={(e) => (e.target.style.transform = 'scale(0.98)')}
-            onMouseUp={(e) => (e.target.style.transform = 'scale(1)')}
+            style={{ padding: '0.75rem 2rem', backgroundColor: '#ff6200', color: '#f4f1de', fontSize: '1rem', fontWeight: '600', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.3s' }}
           >
             Submit Review
           </button>
         </form>
       )}
+
       <button
-        onClick={() => navigate('/artworks')}
-        style={{ display: 'block', margin: '0 auto', fontSize: '1rem', color: '#4a7289', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.3s' }}
-        onMouseOver={(e) => (e.target.style.color = '#355b71')}
-        onMouseOut={(e) => (e.target.style.color = '#4a7289')}
+        onClick={() => navigate(-1)} // Go back to previous page
+        style={{ display: 'block', margin: '2rem auto', fontSize: '1rem', color: '#4a7289', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
       >
-        Back to Artworks
+        Back
       </button>
     </div>
   );

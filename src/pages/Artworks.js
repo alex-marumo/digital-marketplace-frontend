@@ -4,19 +4,20 @@ import axios from 'axios';
 import ArtworkCard from '../components/ArtworkCard';
 import CategoryButtons from '../components/CategoryButtons';
 import { API_BASE_URL } from '../config';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom'; // Import useLocation
 
 function Artworks() {
   const { user, token } = useAuth();
   const [artworks, setArtworks] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false); // Start false to avoid flash
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOptions, setSortOptions] = useState({ field: 'created_at', order: 'desc' });
   const [searchParams] = useSearchParams();
   const initialArtistId = searchParams.get('artist');
+  const location = useLocation(); // Get location object
 
   useEffect(() => {
     if (!token) return;
@@ -31,16 +32,16 @@ function Artworks() {
   }, [token]);
 
   useEffect(() => {
-  const hash = window.location.hash;
-  if (hash === '#search-section') {
-    const target = document.querySelector(hash);
-    if (target) {
-      setTimeout(() => {
-        target.scrollIntoView({ behavior: 'smooth' });
-      }, 100); // slight delay to wait for render
+    const hash = window.location.hash;
+    if (hash === '#search-section') {
+      const target = document.querySelector(hash);
+      if (target) {
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
     }
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (!user || !token) {
@@ -58,28 +59,29 @@ function Artworks() {
         setError('Invalid user role');
         setArtworks([]);
         setLoading(false);
-        return; 
+        return;
       }
-     
+
       if (initialArtistId) {
         params.append('artist', initialArtistId);
       } else if (user.role === 'artist' && user.keycloak_id) {
         params.append('artist', user.keycloak_id);
       }
-     
+
       if (searchQuery.trim()) params.append('query', searchQuery.trim());
       if (selectedCategory) params.append('category', selectedCategory);
       params.append('sort_by', sortOptions.field);
       params.append('order', sortOptions.order);
 
       const url = `${API_BASE_URL}/api/artworks${params.toString() ? `?${params.toString()}` : ''}`;
-      console.log('Fetching artworks with URL:', url, 'Search Query:', searchQuery);
+      console.log('Fetching artworks with URL:', url, 'Search Query:', searchQuery, 'Location Key:', location.key);
       try {
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('Fetched artworks:', res.data);
-        setArtworks(res.data || []);
+        console.log('Fetched artworks data:', res.data); // Log the raw data
+        // Ensure artwork.status is available
+        setArtworks(res.data.map(art => ({ ...art, status: art.status || 'available' })) || []);
         setLoading(false);
       } catch (err) {
         console.error('Fetch artworks error:', {
@@ -93,20 +95,20 @@ function Artworks() {
       }
     };
     fetchArtworks();
-  }, [user, token, selectedCategory, searchQuery, sortOptions]);
+  }, [user, token, selectedCategory, searchQuery, sortOptions, initialArtistId, location.key]); // Added location.key and initialArtistId
 
   const handleCategorySelect = (categoryId) => {
     setSelectedCategory(categoryId);
-    setSearchQuery(''); // Clear search when selecting category
+    setSearchQuery('');
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setSearchQuery(searchQuery.trim()); // Trigger useEffect
+    // The useEffect for fetchArtworks will pick up the searchQuery change
   };
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value); // Update searchQuery on input
+    setSearchQuery(e.target.value);
   };
 
   const handleSortFieldChange = (e) => {
@@ -117,35 +119,32 @@ function Artworks() {
     setSortOptions((prev) => ({ ...prev, order: e.target.value }));
   };
 
-  // Define the delete handler for artworks
   const handleDelete = async (artworkId) => {
-  console.log('🚀 Deleting artwork:', { artworkId, token: token ? 'present' : 'missing' });
-  try {
-    const response = await axios.delete(`${API_BASE_URL}/api/artworks/${artworkId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    console.log('✅ Delete success:', response.status, response.data);
-    setArtworks(artworks.filter(a => a.artwork_id !== artworkId));
-    alert('Artwork deleted! 🎉');
-  } catch (err) {
-    console.error('❌ Delete error:', {
-      status: err.response?.status,
-      message: err.response?.data?.error || err.message,
-      details: err.response?.data?.details
-    });
-    alert(`Failed to delete artwork: ${err.response?.data?.error || err.message}`);
-  }
-};
+    console.log('🚀 Deleting artwork:', { artworkId, token: token ? 'present' : 'missing' });
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/api/artworks/${artworkId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('✅ Delete success:', response.status, response.data);
+      setArtworks(prevArtworks => prevArtworks.filter(a => a.artwork_id !== artworkId));
+      alert('Artwork deleted! 🎉');
+    } catch (err) {
+      console.error('❌ Delete error:', {
+        status: err.response?.status,
+        message: err.response?.data?.error || err.message,
+        details: err.response?.data?.details
+      });
+      alert(`Failed to delete artwork: ${err.response?.data?.error || err.message}`);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-4xl font-bold text-teal-600 mb-6 text-center">
-        {user?.role === 'artist' ? 'My Artworks' : 'Browse All Artworks'}
+        {user?.role === 'artist' && !initialArtistId ? 'My Artworks' : 'Browse Artworks'}
       </h1>
 
-      {/* Unified Search & Sort Section */}
-      <div id="search-section" className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center"></div>
-      <div className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center">
+      <div id="search-section" className="search-sort-wrapper mb-6 flex flex-col sm:flex-row justify-center gap-4 items-center">
         <form onSubmit={handleSearch} className="search-bar flex gap-2">
           <input
             type="text"
@@ -190,15 +189,16 @@ function Artworks() {
       {loading && <p className="text-center text-gray-500">Loading artworks...</p>}
       {error && <p className="text-center text-red-500">{error}</p>}
       
-      <div className="artwork-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="artwork-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {artworks.length > 0 ? (
           artworks.map((artwork) => (
             artwork.artwork_id ? (
               <ArtworkCard 
                 key={artwork.artwork_id} 
-                artwork={artwork} 
+                artwork={artwork} // Pass the full artwork object which includes status
                 userRole={user?.role}
-                onDelete={user?.role === 'artist' ? handleDelete : undefined} // Pass onDelete only for artists
+                // Pass handleDelete only if the current user is the artist of these artworks
+                onDelete={(user?.role === 'artist' && user?.keycloak_id === initialArtistId) || (user?.role === 'artist' && !initialArtistId && user?.keycloak_id === artwork.artist_keycloak_id) ? handleDelete : undefined}
               />
             ) : (
               console.warn('Skipping artwork with missing ID:', artwork)
@@ -207,7 +207,7 @@ function Artworks() {
         ) : (
           !loading && (
             <p className="text-center text-gray-500 col-span-full">
-              {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks found.'}
+              {searchQuery ? `No artworks found for "${searchQuery}"` : 'No artworks available in this category or for this artist.'}
             </p>
           )
         )}
